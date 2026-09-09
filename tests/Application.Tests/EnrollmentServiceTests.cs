@@ -1,3 +1,4 @@
+using Application.Common;
 using Application.DTOs;
 using Application.Ports;
 using Application.UseCases;
@@ -121,11 +122,55 @@ public sealed class EnrollmentServiceTests
         var (students, courses, professors, enrollments, uow) = Mocks();
         var courseId = Guid.NewGuid();
         courses.Setup(c => c.ExistsAsync(courseId, It.IsAny<CancellationToken>())).ReturnsAsync(true);
-        enrollments.Setup(e => e.ListByCourseAsync(courseId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<Enrollment>());
+        enrollments.Setup(e => e.ListByCoursePagedAsync(courseId, 1, 20, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new PagedSlice<Enrollment>(new List<Enrollment>(), 0));
 
         var svc = new EnrollmentService(students.Object, courses.Object, professors.Object, enrollments.Object, uow.Object);
-        var result = await svc.ClassmatesAsync(courseId);
-        result.Should().BeEmpty();
+        var result = await svc.ClassmatesPagedAsync(courseId, 1, 20);
+        result.Items.Should().BeEmpty();
+        result.Total.Should().Be(0);
+        students.Verify(s => s.GetByIdsAsync(It.IsAny<IEnumerable<Guid>>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Classmates_loads_students_in_single_batch_query()
+    {
+        var (students, courses, professors, enrollments, uow) = Mocks();
+        var courseId = Guid.NewGuid();
+        var list = Courses();
+        var e1 = Enrollment.Create(Guid.NewGuid(), "2026-1", list);
+        var e2 = Enrollment.Create(Guid.NewGuid(), "2026-1", list);
+        var programId = Guid.NewGuid();
+        var s1 = new Student("Ana Gil", "ana@uni.edu", "1", programId);
+        var s2 = new Student("Luis Paz", "luis@uni.edu", "2", programId);
+
+        courses.Setup(c => c.ExistsAsync(courseId, It.IsAny<CancellationToken>())).ReturnsAsync(true);
+        enrollments.Setup(e => e.ListByCoursePagedAsync(courseId, 1, 20, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new PagedSlice<Enrollment>(new List<Enrollment> { e1, e2 }, 2));
+        // Map enrollments to our students regardless of generated ids
+        students.Setup(s => s.GetByIdsAsync(It.IsAny<IEnumerable<Guid>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<Student> { s1, s2 });
+
+        var svc = new EnrollmentService(students.Object, courses.Object, professors.Object, enrollments.Object, uow.Object);
+        var result = await svc.ClassmatesPagedAsync(courseId, 1, 20);
+
+        result.Total.Should().Be(2);
+        result.Items.Select(i => i.FullName).Should().BeEquivalentTo("Ana Gil", "Luis Paz");
+        // One batch call for all students — no N+1
+        students.Verify(s => s.GetByIdsAsync(It.IsAny<IEnumerable<Guid>>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task Classmates_unknown_course_throws_not_found()
+    {
+        var (students, courses, professors, enrollments, uow) = Mocks();
+        var courseId = Guid.NewGuid();
+        courses.Setup(c => c.ExistsAsync(courseId, It.IsAny<CancellationToken>())).ReturnsAsync(false);
+
+        var svc = new EnrollmentService(students.Object, courses.Object, professors.Object, enrollments.Object, uow.Object);
+        var act = () => svc.ClassmatesPagedAsync(courseId, 1, 20);
+
+        await act.Should().ThrowAsync<EntityNotFoundException>()
+            .Where(e => e.Code == ErrorCodes.CourseNotFound);
     }
 }

@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { ClassmateDto, EnrollmentDto } from '../models';
+import { ClassmateDto, EnrollmentDto, Paged } from '../models';
 import { environment } from '../../../environments/environment';
 
 @Injectable({ providedIn: 'root' })
@@ -21,7 +21,7 @@ export class EnrollmentService {
     return this.http.put<EnrollmentDto>(`${this.base}/student/${studentId}`, { courseIds }, { params: { period } });
   }
 
-  classmates(courseId: string): Observable<ClassmateDto[]> {
-    return this.http.get<ClassmateDto[]>(`${this.base}/courses/${courseId}/classmates`);
+  classmates(courseId: string, page = 1, pageSize = 20): Observable<Paged<ClassmateDto>> {
+    return this.http.get<Paged<ClassmateDto>>(`${this.base}/courses/${courseId}/classmates`, { params: { page, pageSize } });
   }
 }

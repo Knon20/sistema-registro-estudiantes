@@ -2,8 +2,8 @@ import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { StudentService } from '../../core/services/student.service';
-import { StudentDto, ApiError } from '../../core/models';
-import { HttpErrorResponse } from '@angular/common/http';
+import { StudentDto } from '../../core/models';
+import { apiMessage } from '../../core/http/api-error';
 
 @Component({
   selector: 'app-student-list',
@@ -12,7 +12,7 @@ import { HttpErrorResponse } from '@angular/common/http';
   template: `
     <section class="card">
       <header class="card-head">
-        <h2>Estudiantes</h2>
+        <h2>Estudiantes ({{ total() }})</h2>
         <a routerLink="/students/new" class="btn primary">Nuevo estudiante</a>
       </header>
 
@@ -38,6 +38,12 @@ import { HttpErrorResponse } from '@angular/common/http';
         </tbody>
       </table>
       <p *ngIf="!loading() && !students().length">No hay estudiantes registrados.</p>
+
+      <div class="pager" *ngIf="total() > pageSize">
+        <button class="btn" (click)="prev()" [disabled]="page() <= 1">Anterior</button>
+        <span>Página {{ page() }} de {{ totalPages() }}</span>
+        <button class="btn" (click)="next()" [disabled]="page() >= totalPages()">Siguiente</button>
+      </div>
     </section>
   `,
   styles: [`
@@ -49,27 +55,49 @@ import { HttpErrorResponse } from '@angular/common/http';
     .btn { padding: .4rem .8rem; border-radius: 8px; border: 1px solid #ddd; background: #f8f8f8; cursor: pointer; text-decoration: none; color: #333; font-size: .85rem; }
     .btn.primary { background: #1a73e8; color: #fff; border-color: #1a73e8; }
     .btn.danger { background: #fdecea; border-color: #f5c6cb; color: #b3261e; }
+    .btn:disabled { opacity: .5; cursor: not-allowed; }
     .error { color: #b3261e; background: #fdecea; padding: .6rem; border-radius: 8px; }
+    .pager { display: flex; gap: 1rem; align-items: center; margin-top: 1rem; }
   `]
 })
 export class StudentListComponent implements OnInit {
   private api = inject(StudentService);
   students = signal<StudentDto[]>([]);
+  total = signal(0);
+  page = signal(1);
+  readonly pageSize = 10;
   loading = signal(true);
   error = signal<string | null>(null);
 
+  totalPages(): number {
+    return Math.max(1, Math.ceil(this.total() / this.pageSize));
+  }
+
   ngOnInit(): void {
-    this.api.list().subscribe({
-      next: (items) => { this.students.set(items); this.loading.set(false); },
-      error: (e: HttpErrorResponse) => { this.error.set((e.error as ApiError)?.message ?? 'No se pudo cargar el listado.'); this.loading.set(false); }
+    this.load();
+  }
+
+  load(): void {
+    this.loading.set(true);
+    this.api.list(this.page(), this.pageSize).subscribe({
+      next: (res) => { this.students.set(res.items); this.total.set(res.total); this.loading.set(false); },
+      error: (e) => { this.error.set(apiMessage(e, 'No se pudo cargar el listado.')); this.loading.set(false); }
     });
+  }
+
+  prev(): void {
+    if (this.page() > 1) { this.page.set(this.page() - 1); this.load(); }
+  }
+
+  next(): void {
+    if (this.page() < this.totalPages()) { this.page.set(this.page() + 1); this.load(); }
   }
 
   remove(s: StudentDto): void {
     if (!confirm(`¿Eliminar a ${s.fullName}? Se eliminará también su inscripción.`)) return;
     this.api.remove(s.id).subscribe({
-      next: () => this.students.set(this.students().filter(x => x.id !== s.id)),
-      error: (e: HttpErrorResponse) => alert((e.error as ApiError)?.message ?? 'No se pudo eliminar.')
+      next: () => this.load(),
+      error: (e) => alert(apiMessage(e, 'No se pudo eliminar.'))
     });
   }
 }

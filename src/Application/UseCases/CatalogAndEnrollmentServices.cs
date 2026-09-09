@@ -1,3 +1,4 @@
+using Application.Common;
 using Application.DTOs;
 using Application.Ports;
 using Domain.Entities;
@@ -18,20 +19,32 @@ public sealed class CatalogService
         _courses = courses;
     }
 
-    public async Task<IReadOnlyList<ProgramDto>> ProgramsAsync(CancellationToken ct = default) =>
-        (await _programs.ListAsync(ct)).Select(p => new ProgramDto(p.Id, p.Name, p.Code)).ToList();
-
-    public async Task<IReadOnlyList<ProfessorDto>> ProfessorsAsync(CancellationToken ct = default) =>
-        (await _professors.ListAsync(ct)).Select(p => new ProfessorDto(p.Id, p.FullName, p.Email)).ToList();
-
-    public async Task<IReadOnlyList<CourseDto>> CoursesAsync(CancellationToken ct = default)
+    public async Task<PagedResult<ProgramDto>> ProgramsPagedAsync(int page, int pageSize, CancellationToken ct = default)
     {
-        var courses = await _courses.ListAsync(ct);
+        var req = PageRequest.Normalize(page, pageSize);
+        var slice = await _programs.ListPagedAsync(req.Page, req.PageSize, ct);
+        return new PagedResult<ProgramDto>(
+            slice.Items.Select(p => new ProgramDto(p.Id, p.Name, p.Code)).ToList(), slice.Total);
+    }
+
+    public async Task<PagedResult<ProfessorDto>> ProfessorsPagedAsync(int page, int pageSize, CancellationToken ct = default)
+    {
+        var req = PageRequest.Normalize(page, pageSize);
+        var slice = await _professors.ListPagedAsync(req.Page, req.PageSize, ct);
+        return new PagedResult<ProfessorDto>(
+            slice.Items.Select(p => new ProfessorDto(p.Id, p.FullName, p.Email)).ToList(), slice.Total);
+    }
+
+    public async Task<PagedResult<CourseDto>> CoursesPagedAsync(int page, int pageSize, CancellationToken ct = default)
+    {
+        var req = PageRequest.Normalize(page, pageSize);
+        var slice = await _courses.ListPagedAsync(req.Page, req.PageSize, ct);
         var professors = await _professors.ListAsync(ct);
         var map = professors.ToDictionary(p => p.Id, p => p.FullName);
-        return courses.Select(c => new CourseDto(
-            c.Id, c.Name, c.Code, c.Credits, c.ProfessorId,
-            map.TryGetValue(c.ProfessorId, out var n) ? n : null)).ToList();
+        return new PagedResult<CourseDto>(
+            slice.Items.Select(c => new CourseDto(
+                c.Id, c.Name, c.Code, c.Credits, c.ProfessorId,
+                map.TryGetValue(c.ProfessorId, out var n) ? n : null)).ToList(), slice.Total);
     }
 }
 
@@ -127,24 +140,25 @@ public sealed class EnrollmentService
     }
 
     /// <summary>
-    /// Returns ONLY names of classmates sharing the course (privacy rule).
-    /// Empty list when nobody is enrolled.
+    /// Returns ONLY names of classmates sharing the course (privacy rule), paged.
+    /// Students are loaded in a single batch query (no N+1).
+    /// Empty page when nobody is enrolled.
     /// </summary>
-    public async Task<IReadOnlyList<ClassmateDto>> ClassmatesAsync(Guid courseId, CancellationToken ct = default)
+    public async Task<PagedResult<ClassmateDto>> ClassmatesPagedAsync(Guid courseId, int page, int pageSize, CancellationToken ct = default)
     {
         if (!await _courses.ExistsAsync(courseId, ct))
             throw new EntityNotFoundException(ErrorCodes.CourseNotFound, "Course does not exist.");
 
-        var enrollments = await _enrollments.ListByCourseAsync(courseId, ct);
-        if (enrollments.Count == 0) return Array.Empty<ClassmateDto>();
+        var req = PageRequest.Normalize(page, pageSize);
+        var slice = await _enrollments.ListByCoursePagedAsync(courseId, req.Page, req.PageSize, ct);
+        if (slice.Total == 0) return new PagedResult<ClassmateDto>(new List<ClassmateDto>(), 0);
 
-        var result = new List<ClassmateDto>();
-        foreach (var e in enrollments)
-        {
-            var s = await _students.GetByIdAsync(e.StudentId, ct);
-            if (s is not null) result.Add(new ClassmateDto(s.Id, s.FullName));
-        }
-        return result.OrderBy(x => x.FullName).ToList();
+        var students = await _students.GetByIdsAsync(slice.Items.Select(e => e.StudentId).Distinct(), ct);
+        var items = students
+            .Select(s => new ClassmateDto(s.Id, s.FullName))
+            .OrderBy(x => x.FullName)
+            .ToList();
+        return new PagedResult<ClassmateDto>(items, slice.Total);
     }
 
     private async Task<EnrollmentDto> ToDtoAsync(Enrollment enrollment, string studentName, CancellationToken ct)

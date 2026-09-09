@@ -5,8 +5,8 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { CatalogService } from '../../core/services/catalog.service';
 import { EnrollmentService } from '../../core/services/enrollment.service';
 import { StudentService } from '../../core/services/student.service';
-import { CourseDto, EnrollmentDto, ApiError } from '../../core/models';
-import { HttpErrorResponse } from '@angular/common/http';
+import { CourseDto, EnrollmentDto } from '../../core/models';
+import { apiMessage } from '../../core/http/api-error';
 
 @Component({
   selector: 'app-enrollment',
@@ -107,7 +107,7 @@ export class EnrollmentComponent implements OnInit {
 
   ngOnInit(): void {
     this.studentId = this.route.snapshot.paramMap.get('studentId') ?? '';
-    this.catalog.courses().subscribe({ next: (c) => this.courses.set(c) });
+    this.catalog.courses().subscribe({ next: (res) => this.courses.set(res.items) });
     this.students.get(this.studentId).subscribe({ next: (s) => this.studentName.set(s.fullName) });
     this.load();
   }
@@ -144,7 +144,7 @@ export class EnrollmentComponent implements OnInit {
     const ids = this.selectedIds();
     const done = {
       next: (e: EnrollmentDto) => { this.current.set(e); this.success.set('Inscripción guardada correctamente.'); this.saving.set(false); },
-      error: (e: HttpErrorResponse) => { this.error.set((e.error as ApiError)?.message ?? 'No se pudo guardar la inscripción.'); this.saving.set(false); }
+      error: (e: unknown) => { this.error.set(apiMessage(e, 'No se pudo guardar la inscripción.')); this.saving.set(false); }
     };
     if (this.hasExisting()) this.enrollments.update(this.studentId, this.period, ids).subscribe(done);
     else this.enrollments.create(this.studentId, this.period, ids).subscribe(done);

@@ -1,5 +1,6 @@
--- Seed data: 2 programs, 5 professors, 10 courses (2 per professor).
--- Courses are all 3 credits. Professors each teach exactly 2 courses.
+-- Seed data mirror of Domain.ReferenceData.CatalogSeed (single source of truth).
+-- Keep in sync with src/Domain/ReferenceData/CatalogSeed.cs.
+-- 2 programs, 5 professors, 10 courses (2 per professor, all 3 credits).
 
 DECLARE @P_IS UNIQUEIDENTIFIER = (SELECT TOP 1 Id FROM Programs WHERE Code = 'IS-01');
 

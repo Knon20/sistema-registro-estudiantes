@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { CatalogService } from '../../core/services/catalog.service';
 import { EnrollmentService } from '../../core/services/enrollment.service';
 import { CourseDto, ClassmateDto } from '../../core/models';
+import { apiMessage } from '../../core/http/api-error';
 
 @Component({
   selector: 'app-classmates',
@@ -11,10 +12,11 @@ import { CourseDto, ClassmateDto } from '../../core/models';
   imports: [CommonModule, FormsModule],
   template: `
     <section class="card">
-      <h2>Compañeros por materia</h2>
+      <h2>Compañeros por materia ({{ total() }})</h2>
       <p class="muted">Solo se muestran los <strong>nombres</strong> de los compañeros (sin datos sensibles).</p>
+      <p *ngIf="error()" class="error">{{ error() }}</p>
       <label>Materia
-        <select [(ngModel)]="selectedCourse" (ngModelChange)="load()">
+        <select [(ngModel)]="selectedCourse" (ngModelChange)="resetAndLoad()">
           <option value="">Seleccione...</option>
           <option *ngFor="let c of courses()" [value]="c.id">{{ c.code }} — {{ c.name }} ({{ c.professorName }})</option>
         </select>
@@ -24,6 +26,11 @@ import { CourseDto, ClassmateDto } from '../../core/models';
         <li *ngFor="let m of classmates()">{{ m.fullName }}</li>
       </ul>
       <p *ngIf="!loading() && selectedCourse && !classmates().length" class="muted">Aún no hay estudiantes inscritos en esta materia.</p>
+      <div class="pager" *ngIf="total() > pageSize">
+        <button class="btn" (click)="prev()" [disabled]="page() <= 1">Anterior</button>
+        <span>Página {{ page() }} de {{ totalPages() }}</span>
+        <button class="btn" (click)="next()" [disabled]="page() >= totalPages()">Siguiente</button>
+      </div>
     </section>
   `,
   styles: [`
@@ -33,6 +40,10 @@ import { CourseDto, ClassmateDto } from '../../core/models';
     select { padding: .6rem; border-radius: 8px; border: 1px solid #ccc; font-weight: 400; }
     ul { margin-top: .8rem; display: grid; gap: .4rem; }
     li { background: #f6f8fc; padding: .5rem .8rem; border-radius: 8px; }
+    .btn { padding: .4rem .8rem; border-radius: 8px; border: 1px solid #ddd; background: #f8f8f8; cursor: pointer; }
+    .btn:disabled { opacity: .5; cursor: not-allowed; }
+    .error { color: #b3261e; background: #fdecea; padding: .6rem; border-radius: 8px; }
+    .pager { display: flex; gap: 1rem; align-items: center; margin-top: 1rem; }
   `]
 })
 export class ClassmatesComponent implements OnInit {
@@ -41,19 +52,41 @@ export class ClassmatesComponent implements OnInit {
 
   courses = signal<CourseDto[]>([]);
   classmates = signal<ClassmateDto[]>([]);
+  total = signal(0);
+  page = signal(1);
+  readonly pageSize = 20;
   selectedCourse = '';
   loading = signal(false);
+  error = signal<string | null>(null);
+
+  totalPages(): number {
+    return Math.max(1, Math.ceil(this.total() / this.pageSize));
+  }
 
   ngOnInit(): void {
-    this.catalog.courses().subscribe({ next: (c) => this.courses.set(c) });
+    this.catalog.courses().subscribe({ next: (res) => this.courses.set(res.items) });
+  }
+
+  resetAndLoad(): void {
+    this.page.set(1);
+    this.load();
+  }
+
+  prev(): void {
+    if (this.page() > 1) { this.page.set(this.page() - 1); this.load(); }
+  }
+
+  next(): void {
+    if (this.page() < this.totalPages()) { this.page.set(this.page() + 1); this.load(); }
   }
 
   load(): void {
-    if (!this.selectedCourse) { this.classmates.set([]); return; }
+    if (!this.selectedCourse) { this.classmates.set([]); this.total.set(0); return; }
     this.loading.set(true);
-    this.enrollments.classmates(this.selectedCourse).subscribe({
-      next: (items) => { this.classmates.set(items); this.loading.set(false); },
-      error: () => { this.classmates.set([]); this.loading.set(false); }
+    this.error.set(null);
+    this.enrollments.classmates(this.selectedCourse, this.page(), this.pageSize).subscribe({
+      next: (res) => { this.classmates.set(res.items); this.total.set(res.total); this.loading.set(false); },
+      error: (e) => { this.error.set(apiMessage(e, 'No se pudo cargar los compañeros.')); this.classmates.set([]); this.loading.set(false); }
     });
   }
 }

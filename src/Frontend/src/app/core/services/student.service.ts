@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { StudentDto } from '../models';
+import { Paged, StudentDto } from '../models';
 import { environment } from '../../../environments/environment';
 
 export interface CreateStudentPayload {
@@ -22,8 +22,8 @@ export class StudentService {
   private http = inject(HttpClient);
   private base = `${environment.apiUrl}/students`;
 
-  list(): Observable<StudentDto[]> {
-    return this.http.get<StudentDto[]>(this.base);
+  list(page = 1, pageSize = 20): Observable<Paged<StudentDto>> {
+    return this.http.get<Paged<StudentDto>>(this.base, { params: { page, pageSize } });
   }
 
   get(id: string): Observable<StudentDto> {

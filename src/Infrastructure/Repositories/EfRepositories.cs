@@ -1,3 +1,4 @@
+using Application.Common;
 using Application.Ports;
 using Domain.Entities;
 using Infrastructure.Persistence;
@@ -22,6 +23,15 @@ public sealed class EfStudentRepository : IStudentRepository
     public async Task<IReadOnlyList<Student>> ListAsync(CancellationToken ct = default) =>
         await _db.Students.OrderBy(s => s.FullName).ToListAsync(ct);
 
+    public Task<PagedSlice<Student>> ListPagedAsync(int page, int pageSize, CancellationToken ct = default) =>
+        EfPaging.ToSliceAsync(_db.Students.OrderBy(s => s.FullName), page, pageSize, ct);
+
+    public async Task<IReadOnlyList<Student>> GetByIdsAsync(IEnumerable<Guid> ids, CancellationToken ct = default)
+    {
+        var list = ids.Distinct().ToList();
+        return await _db.Students.Where(s => list.Contains(s.Id)).ToListAsync(ct);
+    }
+
     public async Task AddAsync(Student student, CancellationToken ct = default) =>
         await _db.Students.AddAsync(student, ct);
 
@@ -41,6 +51,9 @@ public sealed class EfProgramRepository : IProgramRepository
 
     public async Task<IReadOnlyList<AcademicProgram>> ListAsync(CancellationToken ct = default) =>
         await _db.Programs.OrderBy(p => p.Name).ToListAsync(ct);
+
+    public Task<PagedSlice<AcademicProgram>> ListPagedAsync(int page, int pageSize, CancellationToken ct = default) =>
+        EfPaging.ToSliceAsync(_db.Programs.OrderBy(p => p.Name), page, pageSize, ct);
 }
 
 public sealed class EfProfessorRepository : IProfessorRepository
@@ -50,6 +63,9 @@ public sealed class EfProfessorRepository : IProfessorRepository
 
     public async Task<IReadOnlyList<Professor>> ListAsync(CancellationToken ct = default) =>
         await _db.Professors.OrderBy(p => p.FullName).ToListAsync(ct);
+
+    public Task<PagedSlice<Professor>> ListPagedAsync(int page, int pageSize, CancellationToken ct = default) =>
+        EfPaging.ToSliceAsync(_db.Professors.OrderBy(p => p.FullName), page, pageSize, ct);
 }
 
 public sealed class EfCourseRepository : ICourseRepository
@@ -59,6 +75,9 @@ public sealed class EfCourseRepository : ICourseRepository
 
     public async Task<IReadOnlyList<Course>> ListAsync(CancellationToken ct = default) =>
         await _db.Courses.OrderBy(c => c.Code).ToListAsync(ct);
+
+    public Task<PagedSlice<Course>> ListPagedAsync(int page, int pageSize, CancellationToken ct = default) =>
+        EfPaging.ToSliceAsync(_db.Courses.OrderBy(c => c.Code), page, pageSize, ct);
 
     public async Task<IReadOnlyList<Course>> GetByIdsAsync(IEnumerable<Guid> ids, CancellationToken ct = default)
     {
@@ -82,8 +101,7 @@ public sealed class EfEnrollmentRepository : IEnrollmentRepository
     {
         var e = await _db.Enrollments.FirstOrDefaultAsync(x => x.StudentId == studentId && x.Period == period, ct);
         if (e is null) return null;
-        var items = await _db.EnrollmentCourses.Where(x => x.EnrollmentId == e.Id).ToListAsync(ct);
-        SyncItems(e, items);
+        await EnrollmentItemsLoader.LoadOneAsync(_db, e, ct);
         return e;
     }
 
@@ -91,27 +109,28 @@ public sealed class EfEnrollmentRepository : IEnrollmentRepository
     {
         var e = await _db.Enrollments.FirstOrDefaultAsync(x => x.Id == id, ct);
         if (e is null) return null;
-        var items = await _db.EnrollmentCourses.Where(x => x.EnrollmentId == e.Id).ToListAsync(ct);
-        SyncItems(e, items);
+        await EnrollmentItemsLoader.LoadOneAsync(_db, e, ct);
         return e;
     }
 
     public async Task<IReadOnlyList<Enrollment>> ListByCourseAsync(Guid courseId, CancellationToken ct = default)
     {
-        var enrollmentIds = await _db.EnrollmentCourses
-            .Where(x => x.CourseId == courseId)
-            .Select(x => x.EnrollmentId)
-            .Distinct()
-            .ToListAsync(ct);
-        var enrollments = await _db.Enrollments
-            .Where(e => enrollmentIds.Contains(e.Id))
-            .ToListAsync(ct);
-        foreach (var e in enrollments)
-        {
-            var items = await _db.EnrollmentCourses.Where(x => x.EnrollmentId == e.Id).ToListAsync(ct);
-            SyncItems(e, items);
-        }
+        var ids = await EnrollmentIdsByCourseAsync(courseId, ct);
+        if (ids.Count == 0) return Array.Empty<Enrollment>();
+        var enrollments = await _db.Enrollments.Where(e => ids.Contains(e.Id)).ToListAsync(ct);
+        await EnrollmentItemsLoader.LoadManyAsync(_db, enrollments, ct);
         return enrollments;
+    }
+
+    public async Task<PagedSlice<Enrollment>> ListByCoursePagedAsync(Guid courseId, int page, int pageSize, CancellationToken ct = default)
+    {
+        var req = PageRequest.Normalize(page, pageSize);
+        var ids = await EnrollmentIdsByCourseAsync(courseId, ct);
+        var query = _db.Enrollments.Where(e => ids.Contains(e.Id)).OrderBy(e => e.CreatedAt);
+        var total = ids.Count;
+        var items = await query.Skip(req.Skip).Take(req.PageSize).ToListAsync(ct);
+        await EnrollmentItemsLoader.LoadManyAsync(_db, items, ct);
+        return new PagedSlice<Enrollment>(items, total);
     }
 
     public async Task AddAsync(Enrollment enrollment, CancellationToken ct = default)
@@ -119,6 +138,47 @@ public sealed class EfEnrollmentRepository : IEnrollmentRepository
         await _db.Enrollments.AddAsync(enrollment, ct);
         foreach (var item in enrollment.Items)
             await _db.EnrollmentCourses.AddAsync(item, ct);
+    }
+
+    private async Task<List<Guid>> EnrollmentIdsByCourseAsync(Guid courseId, CancellationToken ct) =>
+        await _db.EnrollmentCourses
+            .Where(x => x.CourseId == courseId)
+            .Select(x => x.EnrollmentId)
+            .Distinct()
+            .ToListAsync(ct);
+}
+
+/// <summary>Single helper for SQL-level paging (COUNT + SKIP/TAKE).</summary>
+internal static class EfPaging
+{
+    public static async Task<PagedSlice<T>> ToSliceAsync<T>(
+        IOrderedQueryable<T> query, int page, int pageSize, CancellationToken ct)
+    {
+        var req = PageRequest.Normalize(page, pageSize);
+        var total = await query.CountAsync(ct);
+        var items = await query.Skip(req.Skip).Take(req.PageSize).ToListAsync(ct);
+        return new PagedSlice<T>(items, total);
+    }
+}
+
+/// <summary>
+/// Single place that hydrates the Enrollment.Items backing field.
+/// Items are batch-loaded (one query for many enrollments) — no N+1.
+/// </summary>
+internal static class EnrollmentItemsLoader
+{
+    public static Task LoadOneAsync(AppDbContext db, Enrollment enrollment, CancellationToken ct) =>
+        LoadManyAsync(db, new[] { enrollment }, ct);
+
+    public static async Task LoadManyAsync(AppDbContext db, IReadOnlyList<Enrollment> enrollments, CancellationToken ct)
+    {
+        if (enrollments.Count == 0) return;
+        var ids = enrollments.Select(e => e.Id).ToList();
+        var allItems = await db.EnrollmentCourses
+            .Where(x => ids.Contains(x.EnrollmentId))
+            .ToListAsync(ct);
+        foreach (var e in enrollments)
+            SyncItems(e, allItems.Where(x => x.EnrollmentId == e.Id).ToList());
     }
 
     private static void SyncItems(Enrollment enrollment, List<EnrollmentCourse> items)

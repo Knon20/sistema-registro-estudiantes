@@ -1,3 +1,4 @@
+using Application.Common;
 using Application.DTOs;
 using Application.Ports;
 using Domain.Entities;
@@ -44,14 +45,16 @@ public sealed class StudentService
         return new StudentDto(s.Id, s.FullName, s.Email, s.DocumentId, s.ProgramId, program?.Name, s.CreatedAt);
     }
 
-    public async Task<IReadOnlyList<StudentDto>> ListAsync(CancellationToken ct = default)
+    public async Task<PagedResult<StudentDto>> ListPagedAsync(int page, int pageSize, CancellationToken ct = default)
     {
-        var students = await _students.ListAsync(ct);
+        var req = PageRequest.Normalize(page, pageSize);
+        var slice = await _students.ListPagedAsync(req.Page, req.PageSize, ct);
         var programs = await _programs.ListAsync(ct);
         var map = programs.ToDictionary(p => p.Id, p => p.Name);
-        return students.Select(s => new StudentDto(
+        var items = slice.Items.Select(s => new StudentDto(
             s.Id, s.FullName, s.Email, s.DocumentId, s.ProgramId,
             map.TryGetValue(s.ProgramId, out var n) ? n : null, s.CreatedAt)).ToList();
+        return new PagedResult<StudentDto>(items, slice.Total);
     }
 
     public async Task<StudentDto> UpdateAsync(Guid id, UpdateStudentRequest req, CancellationToken ct = default)

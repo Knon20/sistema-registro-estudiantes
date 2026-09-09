@@ -5,3 +5,4 @@ export interface StudentDto { id: string; fullName: string; email: string; docum
 export interface EnrollmentDto { id: string; studentId: string; studentName: string; period: string; totalCredits: number; courses: CourseDto[]; createdAt: string; updatedAt?: string | null; }
 export interface ClassmateDto { studentId: string; fullName: string; }
 export interface ApiError { code: string; message: string; }
+export interface Paged<T> { items: T[]; total: number; }

@@ -70,23 +70,23 @@ docker compose up --build
 dotnet test
 ```
 
-14 pruebas: dominio (7) + aplicación (7) con xUnit + Moq + FluentAssertions.
+32 pruebas: dominio (11) + aplicación (21) con xUnit + Moq + FluentAssertions.
 
 ## Endpoints principales
 
 ```text
 POST   /api/students
-GET    /api/students
+GET    /api/students?page=1&pageSize=20          -> {items, total}
 GET    /api/students/{id}
 PUT    /api/students/{id}
 DELETE /api/students/{id}
 
-GET    /api/programs | /api/professors | /api/courses
+GET    /api/programs|professors|courses?page=&pageSize=   -> {items, total}
 
 POST   /api/enrollments                        {studentId, period, courseIds[3]}
 GET    /api/enrollments/student/{id}?period=
 PUT    /api/enrollments/student/{id}?period=   {courseIds[3]}
-GET    /api/enrollments/courses/{courseId}/classmates   -> solo [{studentId, fullName}]
+GET    /api/enrollments/courses/{courseId}/classmates?page=&pageSize=   -> solo [{studentId, fullName}]
 ```
 
 Errores de negocio: `{ "code": "COURSE_PROFESSOR_CONFLICT", "message": "..." }` con el HTTP apropiado (400/404/409/422).

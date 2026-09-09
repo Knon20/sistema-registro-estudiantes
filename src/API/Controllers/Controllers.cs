@@ -28,11 +28,11 @@ public sealed class StudentsController : ControllerBase
     }
 
     [HttpGet]
-    [ProducesResponseType(typeof(IReadOnlyList<StudentDto>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> List(CancellationToken ct)
+    [ProducesResponseType(typeof(PagedResult<StudentDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> List([FromQuery] int page = 1, [FromQuery] int pageSize = 20, CancellationToken ct = default)
     {
-        var items = await _service.ListAsync(ct);
-        return Ok(items);
+        var result = await _service.ListPagedAsync(page, pageSize, ct);
+        return Ok(result);
     }
 
     [HttpPut("{id:guid}")]
@@ -60,13 +60,16 @@ public sealed class CatalogController : ControllerBase
     public CatalogController(CatalogService catalog) => _catalog = catalog;
 
     [HttpGet("programs")]
-    public async Task<IActionResult> Programs(CancellationToken ct) => Ok(await _catalog.ProgramsAsync(ct));
+    public async Task<IActionResult> Programs([FromQuery] int page = 1, [FromQuery] int pageSize = 20, CancellationToken ct = default) =>
+        Ok(await _catalog.ProgramsPagedAsync(page, pageSize, ct));
 
     [HttpGet("professors")]
-    public async Task<IActionResult> Professors(CancellationToken ct) => Ok(await _catalog.ProfessorsAsync(ct));
+    public async Task<IActionResult> Professors([FromQuery] int page = 1, [FromQuery] int pageSize = 20, CancellationToken ct = default) =>
+        Ok(await _catalog.ProfessorsPagedAsync(page, pageSize, ct));
 
     [HttpGet("courses")]
-    public async Task<IActionResult> Courses(CancellationToken ct) => Ok(await _catalog.CoursesAsync(ct));
+    public async Task<IActionResult> Courses([FromQuery] int page = 1, [FromQuery] int pageSize = 20, CancellationToken ct = default) =>
+        Ok(await _catalog.CoursesPagedAsync(page, pageSize, ct));
 }
 
 [ApiController]
@@ -99,11 +102,11 @@ public sealed class EnrollmentsController : ControllerBase
         return Ok(dto);
     }
 
-    /// <summary>Returns ONLY the names of classmates in a course.</summary>
+    /// <summary>Returns ONLY the names of classmates in a course, paged.</summary>
     [HttpGet("courses/{courseId:guid}/classmates")]
-    public async Task<IActionResult> Classmates(Guid courseId, CancellationToken ct)
+    public async Task<IActionResult> Classmates(Guid courseId, [FromQuery] int page = 1, [FromQuery] int pageSize = 20, CancellationToken ct = default)
     {
-        var items = await _service.ClassmatesAsync(courseId, ct);
-        return Ok(items);
+        var result = await _service.ClassmatesPagedAsync(courseId, page, pageSize, ct);
+        return Ok(result);
     }
 }

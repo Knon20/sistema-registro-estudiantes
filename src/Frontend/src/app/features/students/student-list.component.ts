@@ -2,6 +2,7 @@ import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { StudentService } from '../../core/services/student.service';
+import { ConfirmDialogService } from '../../shared/confirm-dialog/confirm-dialog.service';
 import { StudentDto } from '../../core/models';
 import { apiMessage } from '../../core/http/api-error';
 
@@ -59,6 +60,7 @@ import { apiMessage } from '../../core/http/api-error';
 })
 export class StudentListComponent implements OnInit {
   private api = inject(StudentService);
+  private dialog = inject(ConfirmDialogService);
   students = signal<StudentDto[]>([]);
   total = signal(0);
   page = signal(1);
@@ -90,8 +92,13 @@ export class StudentListComponent implements OnInit {
     if (this.page() < this.totalPages()) { this.page.set(this.page() + 1); this.load(); }
   }
 
-  remove(s: StudentDto): void {
-    if (!confirm(`¿Eliminar a ${s.fullName}? Se eliminará también su inscripción.`)) return;
+  async remove(s: StudentDto): Promise<void> {
+    const ok = await this.dialog.open({
+      title: 'Eliminar estudiante',
+      message: `¿Eliminar a ${s.fullName}? También se eliminará su inscripción y no podrás deshacerlo.`,
+      confirmText: 'Sí, eliminar',
+    });
+    if (!ok) return;
     this.api.remove(s.id).subscribe({
       next: () => this.load(),
       error: (e) => alert(apiMessage(e, 'No se pudo eliminar.'))

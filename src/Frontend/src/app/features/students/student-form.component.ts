@@ -12,7 +12,7 @@ import { apiMessage } from '../../core/http/api-error';
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule, RouterLink],
   template: `
-    <section class="card">
+    <section class="card form-card">
       <h2>{{ isEdit ? 'Editar estudiante' : 'Nuevo estudiante' }}</h2>
       <p *ngIf="error()" class="error">{{ error() }}</p>
       <form [formGroup]="form" (ngSubmit)="save()">
@@ -39,15 +39,11 @@ import { apiMessage } from '../../core/http/api-error';
     </section>
   `,
   styles: [`
-    .card { background: #fff; padding: 1.5rem; border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,.06); max-width: 560px; }
-    form { display: grid; gap: .9rem; }
-    label { display: grid; gap: .3rem; font-weight: 600; }
-    input, select { padding: .6rem; border-radius: 8px; border: 1px solid #ccc; font-weight: 400; }
-    .row { display: flex; gap: .6rem; }
-    .btn { padding: .5rem 1rem; border-radius: 8px; border: 1px solid #ddd; background: #f8f8f8; cursor: pointer; text-decoration: none; color: #333; }
-    .btn.primary { background: #1a73e8; color: #fff; border-color: #1a73e8; }
-    .btn.primary:disabled { opacity: .6; cursor: not-allowed; }
-    .error { color: #b3261e; background: #fdecea; padding: .6rem; border-radius: 8px; }
+    .form-card { max-width: 580px; margin-inline: auto; }
+    form { display: grid; gap: 1rem; }
+    label { display: grid; gap: .35rem; }
+    .row { display: flex; gap: .6rem; flex-wrap: wrap; }
+    .row .btn { flex: 1; justify-content: center; min-width: 130px; }
   `]
 })
 export class StudentFormComponent implements OnInit {

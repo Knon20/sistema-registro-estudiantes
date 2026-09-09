@@ -14,14 +14,14 @@ import { apiMessage } from '../../core/http/api-error';
   imports: [CommonModule, FormsModule, RouterLink],
   template: `
     <section class="card">
-      <h2>Inscripción — {{ studentName() }}</h2>
+      <h2>Inscripción · {{ studentName() }}</h2>
       <p class="muted">Selecciona exactamente <strong>3 materias</strong> de profesores diferentes. Cada materia vale 3 créditos (total 9).</p>
 
       <p *ngIf="error()" class="error">{{ error() }}</p>
       <p *ngIf="success()" class="success">{{ success() }}</p>
 
       <div class="grid">
-        <label *ngFor="let c of courses()" class="course" [class.conflict]="isConflict(c)">
+        <label *ngFor="let c of courses()" class="course" [class.conflict]="isConflict(c)" [class.picked]="isSelected(c.id)">
           <input type="checkbox" [checked]="isSelected(c.id)" (change)="toggle(c)" [disabled]="!isSelected(c.id) && selectedIds().length >= 3" />
           <div>
             <strong>{{ c.code }} — {{ c.name }}</strong>
@@ -31,9 +31,9 @@ import { apiMessage } from '../../core/http/api-error';
       </div>
 
       <div class="summary">
-        <span>Seleccionadas: <strong>{{ selectedIds().length }}/3</strong></span>
-        <span>Créditos: <strong>{{ totalCredits() }}/9</strong></span>
-        <span>Profesores: <strong>{{ professorCount() }}</strong></span>
+        <span class="chip">Seleccionadas: <strong>{{ selectedIds().length }}/3</strong></span>
+        <span class="chip">Créditos: <strong>{{ totalCredits() }}/9</strong></span>
+        <span class="chip">Profesores: <strong>{{ professorCount() }}</strong></span>
       </div>
 
       <p *ngIf="conflictMessage()" class="error">{{ conflictMessage() }}</p>
@@ -53,21 +53,32 @@ import { apiMessage } from '../../core/http/api-error';
     </section>
   `,
   styles: [`
-    .card { background: #fff; padding: 1.5rem; border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,.06); }
-    .muted { color: #666; }
-    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: .7rem; margin: 1rem 0; }
-    .course { display: flex; gap: .6rem; border: 1px solid #e3e3e3; border-radius: 10px; padding: .7rem; cursor: pointer; }
-    .course.conflict { border-color: #f5c6cb; background: #fff5f5; }
-    .summary { display: flex; gap: 1.2rem; margin: .8rem 0; }
-    .row { display: flex; gap: .6rem; align-items: center; margin-top: .8rem; }
-    .btn { padding: .5rem 1rem; border-radius: 8px; border: 1px solid #ddd; background: #f8f8f8; cursor: pointer; text-decoration: none; color: #333; }
-    .btn.primary { background: #1a73e8; color: #fff; border-color: #1a73e8; }
-    .btn.primary:disabled { opacity: .6; cursor: not-allowed; }
-    .error { color: #b3261e; background: #fdecea; padding: .6rem; border-radius: 8px; }
-    .success { color: #137333; background: #e6f4ea; padding: .6rem; border-radius: 8px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr)); gap: .7rem; margin: 1rem 0; }
+    .course {
+      display: flex; gap: .65rem; align-items: flex-start;
+      border: 1px solid var(--border); border-radius: 14px; padding: .8rem;
+      cursor: pointer; background: var(--surface-2); transition: all .18s ease;
+      font-weight: 400;
+    }
+    .course:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
+    .course input { width: auto; accent-color: var(--accent); margin-top: .2rem; }
+    .course.picked { border-color: var(--accent); box-shadow: var(--glow); }
+    .course.conflict { border-color: var(--danger-border); background: var(--danger-bg); }
+    .summary { display: flex; gap: .6rem; margin: .8rem 0; flex-wrap: wrap; }
+    .chip {
+      padding: .4rem .9rem; border-radius: 999px; font-size: .85rem;
+      background: var(--primary-soft); border: 1px solid var(--border); color: var(--text);
+    }
+    .row { display: flex; gap: .6rem; align-items: center; margin-top: .8rem; flex-wrap: wrap; }
     .period { margin-left: auto; display: flex; gap: .4rem; align-items: center; }
-    .period input { width: 90px; padding: .4rem; border-radius: 8px; border: 1px solid #ccc; }
-    .current { margin-top: 1rem; border-top: 1px solid #eee; padding-top: .8rem; }
+    .period input { width: 96px; }
+    .current { margin-top: 1rem; border-top: 1px solid var(--border); padding-top: .8rem; }
+    .current ul { display: grid; gap: .4rem; padding-left: 1.1rem; }
+    @media (max-width: 640px) {
+      .period { margin-left: 0; width: 100%; }
+      .period input { flex: 1; }
+      .row .btn { flex: 1; justify-content: center; }
+    }
   `]
 })
 export class EnrollmentComponent implements OnInit {

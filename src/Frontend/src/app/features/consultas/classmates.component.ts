@@ -11,8 +11,8 @@ import { apiMessage } from '../../core/http/api-error';
   standalone: true,
   imports: [CommonModule, FormsModule],
   template: `
-    <section class="card">
-      <h2>Compañeros por materia ({{ total() }})</h2>
+    <section class="card mates-card">
+      <h2>Compañeros por materia · {{ total() }}</h2>
       <p class="muted">Solo se muestran los <strong>nombres</strong> de los compañeros (sin datos sensibles).</p>
       <p *ngIf="error()" class="error">{{ error() }}</p>
       <label>Materia
@@ -21,29 +21,32 @@ import { apiMessage } from '../../core/http/api-error';
           <option *ngFor="let c of courses()" [value]="c.id">{{ c.code }} — {{ c.name }} ({{ c.professorName }})</option>
         </select>
       </label>
-      <p *ngIf="loading()">Cargando...</p>
-      <ul *ngIf="!loading() && classmates().length">
-        <li *ngFor="let m of classmates()">{{ m.fullName }}</li>
+      <p *ngIf="loading()" class="muted">Cargando...</p>
+      <ul *ngIf="!loading() && classmates().length" class="mates">
+        <li *ngFor="let m of classmates()"><span class="avatar">{{ m.fullName.charAt(0) }}</span>{{ m.fullName }}</li>
       </ul>
       <p *ngIf="!loading() && selectedCourse && !classmates().length" class="muted">Aún no hay estudiantes inscritos en esta materia.</p>
       <div class="pager" *ngIf="total() > pageSize">
-        <button class="btn" (click)="prev()" [disabled]="page() <= 1">Anterior</button>
-        <span>Página {{ page() }} de {{ totalPages() }}</span>
-        <button class="btn" (click)="next()" [disabled]="page() >= totalPages()">Siguiente</button>
+        <button class="btn" (click)="prev()" [disabled]="page() <= 1">← Anterior</button>
+        <span class="muted">Página {{ page() }} de {{ totalPages() }}</span>
+        <button class="btn" (click)="next()" [disabled]="page() >= totalPages()">Siguiente →</button>
       </div>
     </section>
   `,
   styles: [`
-    .card { background: #fff; padding: 1.5rem; border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,.06); max-width: 640px; }
-    .muted { color: #666; }
-    label { display: grid; gap: .4rem; margin: .8rem 0; font-weight: 600; }
-    select { padding: .6rem; border-radius: 8px; border: 1px solid #ccc; font-weight: 400; }
-    ul { margin-top: .8rem; display: grid; gap: .4rem; }
-    li { background: #f6f8fc; padding: .5rem .8rem; border-radius: 8px; }
-    .btn { padding: .4rem .8rem; border-radius: 8px; border: 1px solid #ddd; background: #f8f8f8; cursor: pointer; }
-    .btn:disabled { opacity: .5; cursor: not-allowed; }
-    .error { color: #b3261e; background: #fdecea; padding: .6rem; border-radius: 8px; }
-    .pager { display: flex; gap: 1rem; align-items: center; margin-top: 1rem; }
+    .mates-card { max-width: 680px; margin-inline: auto; }
+    label { display: grid; gap: .4rem; margin: .8rem 0; }
+    .mates { margin-top: .8rem; display: grid; gap: .5rem; padding: 0; list-style: none; }
+    .mates li {
+      display: flex; align-items: center; gap: .7rem;
+      background: var(--surface-2); border: 1px solid var(--border);
+      padding: .55rem .8rem; border-radius: 12px;
+    }
+    .avatar {
+      display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%;
+      font-weight: 800; font-size: .85rem; color: #fff; flex-shrink: 0;
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+    }
   `]
 })
 export class ClassmatesComponent implements OnInit {

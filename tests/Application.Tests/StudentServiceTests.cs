@@ -68,9 +68,8 @@ public sealed class StudentServiceTests
         var svc = new StudentService(students.Object, programs.Object, enrollments.Object, uow.Object);
         await svc.DeleteAsync(student.Id);
 
-        student.IsDeleted.Should().BeTrue();
         student.DeletedAt.Should().NotBeNull();
-        enrollment.IsDeleted.Should().BeTrue();
+        enrollment.DeletedAt.Should().NotBeNull();
         students.Verify(s => s.GetByIdAsync(student.Id, It.IsAny<CancellationToken>()), Times.Once);
         uow.Verify(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }

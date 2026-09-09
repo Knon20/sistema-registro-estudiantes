@@ -95,7 +95,7 @@ export class StudentListComponent implements OnInit {
   async remove(s: StudentDto): Promise<void> {
     const ok = await this.dialog.open({
       title: 'Eliminar estudiante',
-      message: `¿Eliminar a ${s.fullName}? También se eliminará su inscripción y no podrás deshacerlo.`,
+      message: `¿Eliminar a ${s.fullName}? Su registro y su inscripción pasarán a estado eliminado.`,
       confirmText: 'Sí, eliminar',
     });
     if (!ok) return;

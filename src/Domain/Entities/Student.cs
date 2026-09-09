@@ -9,8 +9,8 @@ public sealed class Student : Entity
     public string DocumentId { get; private set; } = default!;
     public Guid ProgramId { get; private set; }
     public DateTime CreatedAt { get; private set; } = DateTime.UtcNow;
-    public bool IsDeleted { get; private set; }
     public DateTime? DeletedAt { get; private set; }
+    public bool IsActive => DeletedAt is null;
 
     private Student() { }
 
@@ -51,11 +51,9 @@ public sealed class Student : Entity
         ProgramId = programId;
     }
 
-    /// <summary>Soft delete: the record is kept for audit, hidden by a global query filter.</summary>
+    /// <summary>Soft delete: DeletedAt set = hidden by global query filter. Audit preserved.</summary>
     public void MarkDeleted()
     {
-        if (IsDeleted) return;
-        IsDeleted = true;
-        DeletedAt = DateTime.UtcNow;
+        DeletedAt ??= DateTime.UtcNow;
     }
 }

@@ -16,7 +16,7 @@ EnrollmentCourses (EnrollmentId FK->Enrollments CASCADE, CourseId FK->Courses RE
 ## Integridad
 
 - PKs `CHAR(36)` (GUIDs).
-- Soft delete en `Students` e `Enrollments` (`IsDeleted`, `DeletedAt`) con filtros globales EF: el borrado lógico oculta el registro y su inscripción en cascada (en código, misma transacción). El email/documento de un registro eliminado queda reservado por los índices únicos.
+- Soft delete en `Students` e `Enrollments` (columna `DeletedAt`; `NULL` = activo) con filtros globales EF: el borrado lógico oculta el registro y su inscripción en cascada (en código, misma transacción). El email/documento de un registro eliminado queda reservado por los índices únicos.
 - FKs con `ON DELETE CASCADE` solo donde el hijo no tiene sentido sin el padre (inscripción sin estudiante).
 - `RESTRICT` en `Courses.ProfessorId` y `EnrollmentCourses.CourseId` para no borrar catálogo con inscripciones.
 - Índices únicos: `Programs.Code`, `Professors.Email`, `Courses.Code`, `Students.Email`, `Students.DocumentId`, `Enrollments(StudentId, Period)`.

@@ -58,7 +58,7 @@ public sealed class AppDbContext : DbContext
             e.HasIndex(x => x.Email).IsUnique();
             e.HasIndex(x => x.DocumentId).IsUnique();
             e.HasOne<AcademicProgram>().WithMany().HasForeignKey(x => x.ProgramId).OnDelete(DeleteBehavior.Restrict);
-            e.HasQueryFilter(x => !x.IsDeleted);
+            e.HasQueryFilter(x => x.DeletedAt == null);
         });
 
         b.Entity<Enrollment>(e =>
@@ -71,7 +71,7 @@ public sealed class AppDbContext : DbContext
             e.Ignore(x => x.Items);
             e.HasIndex(x => new { x.StudentId, x.Period }).IsUnique();
             e.HasOne<Student>().WithMany().HasForeignKey(x => x.StudentId).OnDelete(DeleteBehavior.Cascade);
-            e.HasQueryFilter(x => !x.IsDeleted);
+            e.HasQueryFilter(x => x.DeletedAt == null);
         });
 
         b.Entity<EnrollmentCourse>(e =>

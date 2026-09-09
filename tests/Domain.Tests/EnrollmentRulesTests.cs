@@ -100,14 +100,15 @@ public sealed class EnrollmentRulesTests
     }
 
     [Fact]
-    public void MarkDeleted_sets_flags_and_is_idempotent()
+    public void MarkDeleted_sets_DeletedAt_and_is_idempotent()
     {
         var student = new Student("Ana Gil", "ana@uni.edu", "1001", Guid.NewGuid());
-        student.IsDeleted.Should().BeFalse();
+        student.DeletedAt.Should().BeNull();
+        student.IsActive.Should().BeTrue();
 
         student.MarkDeleted();
-        student.IsDeleted.Should().BeTrue();
         student.DeletedAt.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromMinutes(1));
+        student.IsActive.Should().BeFalse();
 
         var deletedAt = student.DeletedAt;
         student.MarkDeleted();
@@ -115,7 +116,7 @@ public sealed class EnrollmentRulesTests
 
         var enrollment = Enrollment.Create(Guid.NewGuid(), "2026-1", ThreeValid());
         enrollment.MarkDeleted();
-        enrollment.IsDeleted.Should().BeTrue();
         enrollment.DeletedAt.Should().NotBeNull();
+        enrollment.IsActive.Should().BeFalse();
     }
 }

@@ -1,0 +1,164 @@
+using Application.Ports;
+using Domain.Entities;
+using Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore;
+
+namespace Infrastructure.Repositories;
+
+public sealed class EfStudentRepository : IStudentRepository
+{
+    private readonly AppDbContext _db;
+    public EfStudentRepository(AppDbContext db) => _db = db;
+
+    public Task<Student?> GetByIdAsync(Guid id, CancellationToken ct = default) =>
+        _db.Students.FirstOrDefaultAsync(s => s.Id == id, ct);
+
+    public Task<Student?> GetByEmailAsync(string email, CancellationToken ct = default) =>
+        _db.Students.FirstOrDefaultAsync(s => s.Email == email.Trim().ToLower(), ct);
+
+    public Task<Student?> GetByDocumentAsync(string documentId, CancellationToken ct = default) =>
+        _db.Students.FirstOrDefaultAsync(s => s.DocumentId == documentId.Trim(), ct);
+
+    public async Task<IReadOnlyList<Student>> ListAsync(CancellationToken ct = default) =>
+        await _db.Students.OrderBy(s => s.FullName).ToListAsync(ct);
+
+    public async Task AddAsync(Student student, CancellationToken ct = default) =>
+        await _db.Students.AddAsync(student, ct);
+
+    public void Remove(Student student) => _db.Students.Remove(student);
+
+    public Task<bool> ExistsAsync(Guid id, CancellationToken ct = default) =>
+        _db.Students.AnyAsync(s => s.Id == id, ct);
+}
+
+public sealed class EfProgramRepository : IProgramRepository
+{
+    private readonly AppDbContext _db;
+    public EfProgramRepository(AppDbContext db) => _db = db;
+
+    public Task<AcademicProgram?> GetByIdAsync(Guid id, CancellationToken ct = default) =>
+        _db.Programs.FirstOrDefaultAsync(p => p.Id == id, ct);
+
+    public async Task<IReadOnlyList<AcademicProgram>> ListAsync(CancellationToken ct = default) =>
+        await _db.Programs.OrderBy(p => p.Name).ToListAsync(ct);
+}
+
+public sealed class EfProfessorRepository : IProfessorRepository
+{
+    private readonly AppDbContext _db;
+    public EfProfessorRepository(AppDbContext db) => _db = db;
+
+    public async Task<IReadOnlyList<Professor>> ListAsync(CancellationToken ct = default) =>
+        await _db.Professors.OrderBy(p => p.FullName).ToListAsync(ct);
+}
+
+public sealed class EfCourseRepository : ICourseRepository
+{
+    private readonly AppDbContext _db;
+    public EfCourseRepository(AppDbContext db) => _db = db;
+
+    public async Task<IReadOnlyList<Course>> ListAsync(CancellationToken ct = default) =>
+        await _db.Courses.OrderBy(c => c.Code).ToListAsync(ct);
+
+    public async Task<IReadOnlyList<Course>> GetByIdsAsync(IEnumerable<Guid> ids, CancellationToken ct = default)
+    {
+        var list = ids.Distinct().ToList();
+        return await _db.Courses.Where(c => list.Contains(c.Id)).ToListAsync(ct);
+    }
+
+    public Task<Course?> GetByIdAsync(Guid id, CancellationToken ct = default) =>
+        _db.Courses.FirstOrDefaultAsync(c => c.Id == id, ct);
+
+    public Task<bool> ExistsAsync(Guid id, CancellationToken ct = default) =>
+        _db.Courses.AnyAsync(c => c.Id == id, ct);
+}
+
+public sealed class EfEnrollmentRepository : IEnrollmentRepository
+{
+    private readonly AppDbContext _db;
+    public EfEnrollmentRepository(AppDbContext db) => _db = db;
+
+    public async Task<Enrollment?> GetByStudentAndPeriodAsync(Guid studentId, string period, CancellationToken ct = default)
+    {
+        var e = await _db.Enrollments.FirstOrDefaultAsync(x => x.StudentId == studentId && x.Period == period, ct);
+        if (e is null) return null;
+        var items = await _db.EnrollmentCourses.Where(x => x.EnrollmentId == e.Id).ToListAsync(ct);
+        SyncItems(e, items);
+        return e;
+    }
+
+    public async Task<Enrollment?> GetByIdAsync(Guid id, CancellationToken ct = default)
+    {
+        var e = await _db.Enrollments.FirstOrDefaultAsync(x => x.Id == id, ct);
+        if (e is null) return null;
+        var items = await _db.EnrollmentCourses.Where(x => x.EnrollmentId == e.Id).ToListAsync(ct);
+        SyncItems(e, items);
+        return e;
+    }
+
+    public async Task<IReadOnlyList<Enrollment>> ListByCourseAsync(Guid courseId, CancellationToken ct = default)
+    {
+        var enrollmentIds = await _db.EnrollmentCourses
+            .Where(x => x.CourseId == courseId)
+            .Select(x => x.EnrollmentId)
+            .Distinct()
+            .ToListAsync(ct);
+        var enrollments = await _db.Enrollments
+            .Where(e => enrollmentIds.Contains(e.Id))
+            .ToListAsync(ct);
+        foreach (var e in enrollments)
+        {
+            var items = await _db.EnrollmentCourses.Where(x => x.EnrollmentId == e.Id).ToListAsync(ct);
+            SyncItems(e, items);
+        }
+        return enrollments;
+    }
+
+    public async Task AddAsync(Enrollment enrollment, CancellationToken ct = default)
+    {
+        await _db.Enrollments.AddAsync(enrollment, ct);
+        foreach (var item in enrollment.Items)
+            await _db.EnrollmentCourses.AddAsync(item, ct);
+    }
+
+    private static void SyncItems(Enrollment enrollment, List<EnrollmentCourse> items)
+    {
+        var field = typeof(Enrollment).GetField("_items",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+        if (field?.GetValue(enrollment) is List<EnrollmentCourse> list)
+        {
+            list.Clear();
+            list.AddRange(items);
+        }
+    }
+}
+
+public sealed class EfUnitOfWork : IUnitOfWork
+{
+    private readonly AppDbContext _db;
+    public EfUnitOfWork(AppDbContext db) => _db = db;
+
+    public async Task<int> SaveChangesAsync(CancellationToken ct = default)
+    {
+        var enrollments = _db.ChangeTracker.Entries<Enrollment>()
+            .Where(e => e.State is EntityState.Added or EntityState.Modified or EntityState.Unchanged)
+            .Select(e => e.Entity)
+            .ToList();
+
+        foreach (var e in enrollments)
+        {
+            var trackedIds = e.CourseIds().ToHashSet();
+            var dbItems = await _db.EnrollmentCourses
+                .Where(x => x.EnrollmentId == e.Id)
+                .ToListAsync(ct);
+
+            foreach (var dbItem in dbItems.Where(x => !trackedIds.Contains(x.CourseId)))
+                _db.EnrollmentCourses.Remove(dbItem);
+
+            foreach (var courseId in trackedIds.Where(id => dbItems.All(x => x.CourseId != id)))
+                await _db.EnrollmentCourses.AddAsync(new EnrollmentCourse(e.Id, courseId), ct);
+        }
+
+        return await _db.SaveChangesAsync(ct);
+    }
+}

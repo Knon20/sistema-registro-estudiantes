@@ -1,0 +1,11 @@
+<header class="topbar">
+  <h1>{{ title }}</h1>
+  <nav>
+    <a routerLink="/students" routerLinkActive="active">Estudiantes</a>
+    <a routerLink="/students/new" routerLinkActive="active">Nuevo</a>
+    <a routerLink="/classmates" routerLinkActive="active">Compañeros</a>
+  </nav>
+</header>
+<main class="layout">
+  <router-outlet />
+</main>

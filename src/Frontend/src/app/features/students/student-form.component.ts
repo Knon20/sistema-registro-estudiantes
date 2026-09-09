@@ -33,7 +33,7 @@ import { apiMessage } from '../../core/http/api-error';
         </label>
         <div class="row">
           <button class="btn primary" type="submit" [disabled]="form.invalid || saving()">Guardar</button>
-          <a [routerLink]="backLink()" class="btn">Volver</a>
+          <a [routerLink]="backUrl()" class="btn">Volver</a>
         </div>
       </form>
     </section>
@@ -53,9 +53,9 @@ export class StudentFormComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
 
-  /** Edit → back to detail; create → back to home. */
-  backLink(): string[] {
-    return this.isEdit && this.id ? ['/students', this.id] : ['/students'];
+  /** Origin-aware back: list→list, detail→detail; hierarchical fallback. */
+  backUrl(): string {
+    return this.returnUrl ?? (this.isEdit && this.id ? `/students/${this.id}` : '/students');
   }
 
   form = this.fb.group({
@@ -70,10 +70,15 @@ export class StudentFormComponent implements OnInit {
   saving = signal(false);
   isEdit = false;
   private id: string | null = null;
+  private returnUrl: string | null = null;
 
   ngOnInit(): void {
     this.catalog.programs().subscribe({ next: (res) => this.programs.set(res.items) });
     this.id = this.route.snapshot.paramMap.get('id');
+    const requested = this.route.snapshot.queryParamMap.get('returnUrl');
+    this.returnUrl = requested && requested.startsWith('/') && !requested.includes('/edit')
+      ? requested
+      : null;
     const url = this.route.snapshot.url.map(s => s.path).join('/');
     if (this.id && url.includes('edit')) {
       this.isEdit = true;
@@ -93,7 +98,7 @@ export class StudentFormComponent implements OnInit {
 
     if (this.isEdit && this.id) {
       this.api.update(this.id, { fullName: v.fullName!, email: v.email!, programId: v.programId! }).subscribe({
-        next: () => this.router.navigate(['/students']),
+        next: () => this.router.navigateByUrl(this.backUrl()),
         error: (e) => { this.error.set(apiMessage(e, 'No se pudo guardar.')); this.saving.set(false); }
       });
     } else {

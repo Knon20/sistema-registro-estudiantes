@@ -40,7 +40,7 @@ import { apiMessage } from '../../core/http/api-error';
 
       <div class="row">
         <button class="btn primary" (click)="save()" [disabled]="!canSave() || saving()">{{ hasExisting() ? 'Actualizar inscripción' : 'Crear inscripción' }}</button>
-        <a [routerLink]="studentLink()" class="btn">Volver</a>
+        <a [routerLink]="backUrl()" class="btn">Volver</a>
         <a routerLink="/students" class="btn">Inicio</a>
         <label class="period">Periodo <input [(ngModel)]="period" /></label>
       </div>
@@ -87,8 +87,12 @@ export class EnrollmentComponent implements OnInit {
   private catalog = inject(CatalogService);
   private enrollments = inject(EnrollmentService);
   private students = inject(StudentService);
-  protected studentLink(): string[] {
-    return this.studentId ? ['/students', this.studentId] : ['/students'];
+  private returnUrl: string | null = null;
+
+  /** Origin-aware back: list→list, detail→detail; hierarchical fallback. */
+  backUrl(): string {
+    return this.returnUrl
+      ?? (this.studentId ? `/students/${this.studentId}` : '/students');
   }
 
   courses = signal<CourseDto[]>([]);
@@ -122,6 +126,10 @@ export class EnrollmentComponent implements OnInit {
 
   ngOnInit(): void {
     this.studentId = this.route.snapshot.paramMap.get('studentId') ?? '';
+    const requested = this.route.snapshot.queryParamMap.get('returnUrl');
+    this.returnUrl = requested && requested.startsWith('/') && !requested.includes('/enrollment')
+      ? requested
+      : null;
     this.catalog.courses().subscribe({ next: (res) => this.courses.set(res.items) });
     this.students.get(this.studentId).subscribe({ next: (s) => this.studentName.set(s.fullName) });
     this.load();

@@ -31,9 +31,9 @@ import { apiMessage } from '../../core/http/api-error';
               <td>{{ s.email }}</td>
               <td>{{ s.documentId }}</td>
               <td>{{ s.programName ?? s.programId }}</td>
-              <td class="actions">
-                <a [routerLink]="['/students', s.id, 'edit']" class="btn">Editar</a>
-                <a [routerLink]="['/enrollment', s.id]" class="btn">Inscripción</a>
+            <td class="actions">
+              <a [routerLink]="['/students', s.id, 'edit']" [queryParams]="{returnUrl: '/students'}" class="btn">Editar</a>
+              <a [routerLink]="['/enrollment', s.id]" [queryParams]="{returnUrl: '/students'}" class="btn">Inscripción</a>
                 <button class="btn danger" (click)="remove(s)">Eliminar</button>
               </td>
             </tr>

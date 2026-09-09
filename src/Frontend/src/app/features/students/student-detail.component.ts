@@ -41,8 +41,8 @@ import { apiMessage } from '../../core/http/api-error';
         <p *ngIf="enrollment() as e" class="muted">Total: <strong>{{ e.totalCredits }} créditos</strong></p>
 
         <div class="row">
-          <a [routerLink]="['/students', s.id, 'edit']" class="btn">Editar</a>
-          <a [routerLink]="['/enrollment', s.id]" class="btn primary">Inscripción</a>
+          <a [routerLink]="['/students', s.id, 'edit']" [queryParams]="{returnUrl: returnUrl()}" class="btn">Editar</a>
+          <a [routerLink]="['/enrollment', s.id]" [queryParams]="{returnUrl: returnUrl()}" class="btn primary">Inscripción</a>
           <a routerLink="/students" class="btn">Inicio</a>
         </div>
       </ng-container>
@@ -80,9 +80,15 @@ export class StudentDetailComponent implements OnInit {
   loading = signal(true);
   error = signal<string | null>(null);
   readonly period = '2026-1';
+  private studentId = '';
+
+  returnUrl(): string {
+    return this.studentId ? `/students/${this.studentId}` : '/students';
+  }
 
   ngOnInit(): void {
     const id = this.route.snapshot.paramMap.get('id') ?? '';
+    this.studentId = id;
     this.students.get(id).subscribe({
       next: (s) => {
         this.student.set(s);

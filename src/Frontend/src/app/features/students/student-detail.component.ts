@@ -3,7 +3,6 @@ import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { StudentService } from '../../core/services/student.service';
 import { EnrollmentService } from '../../core/services/enrollment.service';
-import { NavigationService } from '../../core/navigation/navigation.service';
 import { StudentDto, EnrollmentDto } from '../../core/models';
 import { apiMessage } from '../../core/http/api-error';
 
@@ -44,7 +43,7 @@ import { apiMessage } from '../../core/http/api-error';
         <div class="row">
           <a [routerLink]="['/students', s.id, 'edit']" class="btn">Editar</a>
           <a [routerLink]="['/enrollment', s.id]" class="btn primary">Inscripción</a>
-          <button class="btn" (click)="nav.back()">Volver</button>
+          <a routerLink="/students" class="btn">Inicio</a>
         </div>
       </ng-container>
     </section>
@@ -75,7 +74,6 @@ export class StudentDetailComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private students = inject(StudentService);
   private enrollments = inject(EnrollmentService);
-  protected nav = inject(NavigationService);
 
   student = signal<StudentDto | null>(null);
   enrollment = signal<EnrollmentDto | null>(null);

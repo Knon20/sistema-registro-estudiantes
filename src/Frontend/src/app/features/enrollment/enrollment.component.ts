@@ -41,6 +41,7 @@ import { apiMessage } from '../../core/http/api-error';
       <div class="row">
         <button class="btn primary" (click)="save()" [disabled]="!canSave() || saving()">{{ hasExisting() ? 'Actualizar inscripción' : 'Crear inscripción' }}</button>
         <a [routerLink]="studentLink()" class="btn">Volver</a>
+        <a routerLink="/students" class="btn">Inicio</a>
         <label class="period">Periodo <input [(ngModel)]="period" /></label>
       </div>
 

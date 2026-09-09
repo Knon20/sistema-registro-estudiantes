@@ -112,6 +112,15 @@ public sealed class EfEnrollmentRepository : IEnrollmentRepository
         return e;
     }
 
+    public async Task<Enrollment?> GetByStudentAndPeriodIncludingDeletedAsync(Guid studentId, string period, CancellationToken ct = default)
+    {
+        var e = await _db.Enrollments.IgnoreQueryFilters()
+            .FirstOrDefaultAsync(x => x.StudentId == studentId && x.Period == period, ct);
+        if (e is null) return null;
+        await EnrollmentItemsLoader.LoadOneAsync(_db, e, ct);
+        return e;
+    }
+
     public async Task<Enrollment?> GetByIdAsync(Guid id, CancellationToken ct = default)
     {
         var e = await _db.Enrollments.FirstOrDefaultAsync(x => x.Id == id, ct);

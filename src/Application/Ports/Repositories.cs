@@ -43,6 +43,7 @@ public interface ICourseRepository
 public interface IEnrollmentRepository
 {
     Task<Enrollment?> GetByStudentAndPeriodAsync(Guid studentId, string period, CancellationToken ct = default);
+    Task<Enrollment?> GetByStudentAndPeriodIncludingDeletedAsync(Guid studentId, string period, CancellationToken ct = default);
     Task<IReadOnlyList<Enrollment>> ListByStudentAsync(Guid studentId, CancellationToken ct = default);
     Task<Enrollment?> GetByIdAsync(Guid id, CancellationToken ct = default);
     Task<IReadOnlyList<Enrollment>> ListByCourseAsync(Guid courseId, CancellationToken ct = default);

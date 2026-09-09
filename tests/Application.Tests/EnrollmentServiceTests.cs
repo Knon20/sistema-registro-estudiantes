@@ -51,6 +51,37 @@ public sealed class EnrollmentServiceTests
     }
 
     [Fact]
+    public async Task Create_restores_deleted_enrollment_with_new_courses()
+    {
+        var (students, courses, professors, enrollments, uow) = Mocks();
+        var studentId = Guid.NewGuid();
+        var student = new Student("Juan Pérez", "juan@uni.edu", "1001", Guid.NewGuid());
+        var oldList = Courses("old");
+        var deleted = Enrollment.Create(studentId, "2026-1", oldList);
+        deleted.MarkDeleted();
+        var newList = Courses("new");
+
+        students.Setup(s => s.GetByIdAsync(studentId, It.IsAny<CancellationToken>())).ReturnsAsync(student);
+        enrollments.Setup(e => e.GetByStudentAndPeriodAsync(studentId, "2026-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Enrollment?)null);
+        enrollments.Setup(e => e.GetByStudentAndPeriodIncludingDeletedAsync(studentId, "2026-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(deleted);
+        courses.Setup(c => c.GetByIdsAsync(It.IsAny<IEnumerable<Guid>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(newList);
+        professors.Setup(p => p.ListAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<Professor>());
+
+        var svc = new EnrollmentService(students.Object, courses.Object, professors.Object, enrollments.Object, uow.Object);
+        var dto = await svc.CreateAsync(new CreateEnrollmentRequest(studentId, "2026-1", newList.Select(c => c.Id).ToList()));
+
+        deleted.DeletedAt.Should().BeNull();
+        deleted.CourseIds().Should().BeEquivalentTo(newList.Select(c => c.Id));
+        dto.Courses.Should().HaveCount(3);
+        enrollments.Verify(e => e.AddAsync(It.IsAny<Enrollment>(), It.IsAny<CancellationToken>()), Times.Never);
+        uow.Verify(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
     public async Task Create_enrollment_with_professor_conflict_fails()
     {
         var (students, courses, professors, enrollments, uow) = Mocks();

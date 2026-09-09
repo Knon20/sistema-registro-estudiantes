@@ -11,6 +11,7 @@
 | Misma materia dos veces | 422 `COURSE_DUPLICATED` |
 | Modificar inscripción a combinación inválida | 422 según regla violada; la inscripción previa queda intacta |
 | Eliminar estudiante con inscripción | 204; estudiante e inscripción se marcan eliminados (soft delete, auditoría preservada); desaparecen de listados y compañeros |
+| Re-inscribir periodo con inscripción eliminada | 201; la inscripción eliminada se reactiva con la nueva selección (el índice único incluye borrados) |
 | Solicitudes concurrentes (doble POST mismo estudiante+periodo) | Una gana (201), la otra 409 `ENROLLMENT_DUPLICATED` o `CONCURRENCY_CONFLICT` |
 | Consultar estudiante inexistente | 404 `STUDENT_NOT_FOUND` |
 | Compañeros de materia sin inscritos | 200 `[]` |

@@ -85,6 +85,24 @@ public sealed class EnrollmentService
         if (courses.Count != req.CourseIds.Count)
             throw new EntityNotFoundException(ErrorCodes.CourseNotFound, "One or more courses do not exist.");
 
+        // Re-enrollment: a soft-deleted enrollment for the same period is restored
+        // with the new selection (its unique index still occupies StudentId+Period).
+        var deleted = await _enrollments.GetByStudentAndPeriodIncludingDeletedAsync(req.StudentId, req.Period.Trim(), ct);
+        if (deleted is not null)
+        {
+            deleted.Restore();
+            deleted.ReplaceCourses(courses); // domain revalidates all rules
+            try
+            {
+                await _uow.SaveChangesAsync(ct);
+            }
+            catch (Exception ex) when (IsConcurrency(ex))
+            {
+                throw new ConcurrencyException("The enrollment was modified by another request. Please retry.");
+            }
+            return await ToDtoAsync(deleted, student.FullName, ct);
+        }
+
         // Aggregate protects invariants (count, duplicates, professor conflict, credits).
         var enrollment = Enrollment.Create(req.StudentId, req.Period, courses);
 

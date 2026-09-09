@@ -118,6 +118,10 @@ public sealed class EnrollmentRulesTests
         enrollment.MarkDeleted();
         enrollment.DeletedAt.Should().NotBeNull();
         enrollment.IsActive.Should().BeFalse();
+
+        enrollment.Restore();
+        enrollment.DeletedAt.Should().BeNull();
+        enrollment.IsActive.Should().BeTrue();
     }
 
     [Fact]

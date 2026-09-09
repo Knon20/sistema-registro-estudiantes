@@ -57,6 +57,12 @@ public sealed class Enrollment : Entity
         DeletedAt ??= DateTime.UtcNow;
     }
 
+    /// <summary>Re-activates a soft-deleted enrollment (re-enrollment).</summary>
+    public void Restore()
+    {
+        DeletedAt = null;
+    }
+
     public int TotalCredits(IReadOnlyList<Course> selectedCourses) => selectedCourses.Sum(c => c.Credits);
 }
 

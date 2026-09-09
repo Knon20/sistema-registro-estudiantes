@@ -7,7 +7,7 @@ COPY src/Infrastructure/Infrastructure.csproj src/Infrastructure/
 COPY src/API/API.csproj src/API/
 RUN dotnet restore src/API/API.csproj
 COPY . .
-RUN dotnet publish src/API/API.csproj -c Release -o /app/publish --no-restore
+RUN dotnet publish src/API/API.csproj -c Release -o /app/publish
 
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
 WORKDIR /app

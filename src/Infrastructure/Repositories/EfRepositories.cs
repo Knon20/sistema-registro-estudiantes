@@ -140,8 +140,11 @@ public sealed class EfUnitOfWork : IUnitOfWork
 
     public async Task<int> SaveChangesAsync(CancellationToken ct = default)
     {
+        // Only sync items for enrollments that already exist in the database
+        // (update path via ReplaceCourses). Newly added enrollments already
+        // have their EnrollmentCourse items tracked by EfEnrollmentRepository.AddAsync.
         var enrollments = _db.ChangeTracker.Entries<Enrollment>()
-            .Where(e => e.State is EntityState.Added or EntityState.Modified or EntityState.Unchanged)
+            .Where(e => e.State is EntityState.Modified or EntityState.Unchanged)
             .Select(e => e.Entity)
             .ToList();
 

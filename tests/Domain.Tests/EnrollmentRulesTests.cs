@@ -98,4 +98,24 @@ public sealed class EnrollmentRulesTests
         var act = () => new Student("AB", "a@uni.edu", "123", Guid.NewGuid());
         act.Should().Throw<ArgumentException>();
     }
+
+    [Fact]
+    public void MarkDeleted_sets_flags_and_is_idempotent()
+    {
+        var student = new Student("Ana Gil", "ana@uni.edu", "1001", Guid.NewGuid());
+        student.IsDeleted.Should().BeFalse();
+
+        student.MarkDeleted();
+        student.IsDeleted.Should().BeTrue();
+        student.DeletedAt.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromMinutes(1));
+
+        var deletedAt = student.DeletedAt;
+        student.MarkDeleted();
+        student.DeletedAt.Should().Be(deletedAt);
+
+        var enrollment = Enrollment.Create(Guid.NewGuid(), "2026-1", ThreeValid());
+        enrollment.MarkDeleted();
+        enrollment.IsDeleted.Should().BeTrue();
+        enrollment.DeletedAt.Should().NotBeNull();
+    }
 }

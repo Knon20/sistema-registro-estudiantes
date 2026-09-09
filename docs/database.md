@@ -1,4 +1,6 @@
-# Base de datos
+# Base de datos (MySQL 8)
+
+Proveedor EF Core: Pomelo (`Pomelo.EntityFrameworkCore.MySql`). Charset `utf8mb4` (tildes y eñes sin problema).
 
 ## Modelo
 
@@ -13,7 +15,8 @@ EnrollmentCourses (EnrollmentId FK->Enrollments CASCADE, CourseId FK->Courses RE
 
 ## Integridad
 
-- PKs `uniqueidentifier` (GUID).
+- PKs `CHAR(36)` (GUIDs).
+- Soft delete en `Students` e `Enrollments` (`IsDeleted`, `DeletedAt`) con filtros globales EF: el borrado lógico oculta el registro y su inscripción en cascada (en código, misma transacción). El email/documento de un registro eliminado queda reservado por los índices únicos.
 - FKs con `ON DELETE CASCADE` solo donde el hijo no tiene sentido sin el padre (inscripción sin estudiante).
 - `RESTRICT` en `Courses.ProfessorId` y `EnrollmentCourses.CourseId` para no borrar catálogo con inscripciones.
 - Índices únicos: `Programs.Code`, `Professors.Email`, `Courses.Code`, `Students.Email`, `Students.DocumentId`, `Enrollments(StudentId, Period)`.

@@ -12,7 +12,6 @@ public interface IStudentRepository
     Task<PagedSlice<Student>> ListPagedAsync(int page, int pageSize, CancellationToken ct = default);
     Task<IReadOnlyList<Student>> GetByIdsAsync(IEnumerable<Guid> ids, CancellationToken ct = default);
     Task AddAsync(Student student, CancellationToken ct = default);
-    void Remove(Student student);
     Task<bool> ExistsAsync(Guid id, CancellationToken ct = default);
 }
 
@@ -41,6 +40,7 @@ public interface ICourseRepository
 public interface IEnrollmentRepository
 {
     Task<Enrollment?> GetByStudentAndPeriodAsync(Guid studentId, string period, CancellationToken ct = default);
+    Task<IReadOnlyList<Enrollment>> ListByStudentAsync(Guid studentId, CancellationToken ct = default);
     Task<Enrollment?> GetByIdAsync(Guid id, CancellationToken ct = default);
     Task<IReadOnlyList<Enrollment>> ListByCourseAsync(Guid courseId, CancellationToken ct = default);
     Task<PagedSlice<Enrollment>> ListByCoursePagedAsync(Guid courseId, int page, int pageSize, CancellationToken ct = default);

@@ -35,8 +35,6 @@ public sealed class EfStudentRepository : IStudentRepository
     public async Task AddAsync(Student student, CancellationToken ct = default) =>
         await _db.Students.AddAsync(student, ct);
 
-    public void Remove(Student student) => _db.Students.Remove(student);
-
     public Task<bool> ExistsAsync(Guid id, CancellationToken ct = default) =>
         _db.Students.AnyAsync(s => s.Id == id, ct);
 }
@@ -126,11 +124,20 @@ public sealed class EfEnrollmentRepository : IEnrollmentRepository
     {
         var req = PageRequest.Normalize(page, pageSize);
         var ids = await EnrollmentIdsByCourseAsync(courseId, ct);
+        // NOTE: count on the filtered Enrollments set (soft-deleted excluded by global filter),
+        // not on raw link ids.
         var query = _db.Enrollments.Where(e => ids.Contains(e.Id)).OrderBy(e => e.CreatedAt);
-        var total = ids.Count;
+        var total = await query.CountAsync(ct);
         var items = await query.Skip(req.Skip).Take(req.PageSize).ToListAsync(ct);
         await EnrollmentItemsLoader.LoadManyAsync(_db, items, ct);
         return new PagedSlice<Enrollment>(items, total);
+    }
+
+    public async Task<IReadOnlyList<Enrollment>> ListByStudentAsync(Guid studentId, CancellationToken ct = default)
+    {
+        var enrollments = await _db.Enrollments.Where(e => e.StudentId == studentId).ToListAsync(ct);
+        await EnrollmentItemsLoader.LoadManyAsync(_db, enrollments, ct);
+        return enrollments;
     }
 
     public async Task AddAsync(Enrollment enrollment, CancellationToken ct = default)

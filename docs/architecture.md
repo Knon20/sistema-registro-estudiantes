@@ -11,7 +11,7 @@ Domain  ->  Application  ->  Infrastructure  ->  API
 
 - **Domain** (`src/Domain`): entidades (`Student`, `AcademicProgram`, `Professor`, `Course`, `Enrollment` + `EnrollmentCourse`), reglas (`EnrollmentRules`), excepciones (`DomainException` + códigos). Sin dependencias a EF, ASP.NET, Angular o BD.
 - **Application** (`src/Application`): DTOs, puertos (`IStudentRepository`, `ICourseRepository`, `IEnrollmentRepository`, `IUnitOfWork`, ...), casos de uso (`StudentService`, `CatalogService`, `EnrollmentService`). Orquesta, no conoce SQL.
-- **Infrastructure** (`src/Infrastructure`): `AppDbContext`, repositorios EF Core, `EfUnitOfWork`, seed. Único lugar que conoce SQL Server.
+- **Infrastructure** (`src/Infrastructure`): `AppDbContext`, repositorios EF Core (Pomelo MySQL), `EfUnitOfWork`, seed. Único lugar que conoce MySQL.
 - **API** (`src/API`): controllers delgados, middleware de errores, Swagger, DI, CORS.
 - **Frontend** (`src/Frontend`): Angular 17 standalone, feature folders (`students`, `enrollment`, `consultas`), servicios (`StudentService`, `CatalogService`, `EnrollmentService`), Reactive Forms + HttpClient.
 
@@ -37,7 +37,8 @@ Inversión de dependencias: Application define puertos; Infrastructure los imple
 
 ## Decisiones
 
-- SQL Server (requisito MySQL/SQL Server) por imagen Docker oficial y tooling EF.
+- MySQL 8 (requisito MySQL/SQL): imagen liviana, tooling simple (Workbench) y proveedor Pomelo maduro. Nada del test requiere algo exclusivo de SQL Server.
+- Soft delete en `Student`/`Enrollment` (`IsDeleted` + filtro global): el borrado lógico conserva auditoría; la cascada a inscripciones se hace en código dentro de la misma transacción.
 - Sin MediatR/AutoMapper: sobreingeniería para este tamaño; servicios + mapeo manual son más legibles.
 - `EnrollmentCourse` como entidad con clave compuesta (no owned) para consultas eficientes por materia.
 - Seed en `EnsureSeededAsync` + `database/seed.sql` con GUIDs fijos para pruebas manuales.
@@ -50,7 +51,7 @@ Inversión de dependencias: Application define puertos; Infrastructure los imple
                               |                        |
                          Middleware/Swagger      Ports (interfaces)
                                                        |
-                                              [EF Repositories + SQL Server]
+                                              [EF Repositories + MySQL]
 ```
 
 ## Secuencia — crear inscripción

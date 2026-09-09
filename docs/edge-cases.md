@@ -9,7 +9,7 @@
 | Materia inexistente | 404 `COURSE_NOT_FOUND` |
 | Misma materia dos veces | 422 `COURSE_DUPLICATED` |
 | Modificar inscripción a combinación inválida | 422 según regla violada; la inscripción previa queda intacta |
-| Eliminar estudiante con inscripción | 204; la inscripción se elimina en cascada (FK `Enrollments.StudentId` cascade) |
+| Eliminar estudiante con inscripción | 204; estudiante e inscripción se marcan eliminados (soft delete, auditoría preservada); desaparecen de listados y compañeros |
 | Solicitudes concurrentes (doble POST mismo estudiante+periodo) | Una gana (201), la otra 409 `ENROLLMENT_DUPLICATED` o `CONCURRENCY_CONFLICT` |
 | Consultar estudiante inexistente | 404 `STUDENT_NOT_FOUND` |
 | Compañeros de materia sin inscritos | 200 `[]` |

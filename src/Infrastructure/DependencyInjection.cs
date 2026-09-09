@@ -10,7 +10,9 @@ public static class InfrastructureServiceExtensions
 {
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, string connectionString)
     {
-        services.AddDbContext<AppDbContext>(opt => opt.UseSqlServer(connectionString));
+        // Fixed server version avoids an extra AutoDetect round-trip at startup.
+        var serverVersion = new MySqlServerVersion(new Version(8, 0, 0));
+        services.AddDbContext<AppDbContext>(opt => opt.UseMySql(connectionString, serverVersion));
         services.AddScoped<IStudentRepository, EfStudentRepository>();
         services.AddScoped<IProgramRepository, EfProgramRepository>();
         services.AddScoped<IProfessorRepository, EfProfessorRepository>();

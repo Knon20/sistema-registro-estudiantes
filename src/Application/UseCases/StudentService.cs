@@ -10,12 +10,18 @@ public sealed class StudentService
 {
     private readonly IStudentRepository _students;
     private readonly IProgramRepository _programs;
+    private readonly IEnrollmentRepository _enrollments;
     private readonly IUnitOfWork _uow;
 
-    public StudentService(IStudentRepository students, IProgramRepository programs, IUnitOfWork uow)
+    public StudentService(
+        IStudentRepository students,
+        IProgramRepository programs,
+        IEnrollmentRepository enrollments,
+        IUnitOfWork uow)
     {
         _students = students;
         _programs = programs;
+        _enrollments = enrollments;
         _uow = uow;
     }
 
@@ -79,7 +85,11 @@ public sealed class StudentService
     {
         var s = await _students.GetByIdAsync(id, ct)
             ?? throw new EntityNotFoundException(ErrorCodes.StudentNotFound, "Student not found.");
-        _students.Remove(s);
+        // Soft delete with cascade in code: enrollments are marked deleted
+        // in the same transaction (DB cascade only covers physical deletes).
+        s.MarkDeleted();
+        foreach (var e in await _enrollments.ListByStudentAsync(id, ct))
+            e.MarkDeleted();
         await _uow.SaveChangesAsync(ct);
     }
 }

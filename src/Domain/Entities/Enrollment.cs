@@ -17,6 +17,8 @@ public sealed class Enrollment : Entity
     public string Period { get; private set; } = "2026-1";
     public DateTime CreatedAt { get; private set; } = DateTime.UtcNow;
     public DateTime? UpdatedAt { get; private set; }
+    public bool IsDeleted { get; private set; }
+    public DateTime? DeletedAt { get; private set; }
 
     private readonly List<EnrollmentCourse> _items = new();
     public IReadOnlyCollection<EnrollmentCourse> Items => _items.AsReadOnly();
@@ -48,6 +50,14 @@ public sealed class Enrollment : Entity
     }
 
     public IReadOnlyList<Guid> CourseIds() => _items.Select(i => i.CourseId).ToList();
+
+    /// <summary>Soft delete: the record is kept for audit, hidden by a global query filter.</summary>
+    public void MarkDeleted()
+    {
+        if (IsDeleted) return;
+        IsDeleted = true;
+        DeletedAt = DateTime.UtcNow;
+    }
 
     public int TotalCredits(IReadOnlyList<Course> selectedCourses) => selectedCourses.Sum(c => c.Credits);
 }

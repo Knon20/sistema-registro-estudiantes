@@ -1,6 +1,6 @@
 # Sistema de Registro de Estudiantes
 
-Aplicación web para el registro de estudiantes y su inscripción a materias (3 materias, 9 créditos, profesores diferentes), con .NET 8 + Angular 17 + SQL Server + Docker.
+Aplicación web para el registro de estudiantes y su inscripción a materias (3 materias, 9 créditos, profesores diferentes), con .NET 8 + Angular 17 + MySQL + Docker.
 
 ## Arquitectura
 
@@ -8,7 +8,7 @@ Clean Architecture / Hexagonal por capas: `Domain`, `Application`, `Infrastructu
 
 ## Tecnologías
 
-- Backend: .NET 8, ASP.NET Core Web API, EF Core, SQL Server, Swagger
+- Backend: .NET 8, ASP.NET Core Web API, EF Core (Pomelo), MySQL 8, Swagger
 - Tests: xUnit, Moq, FluentAssertions
 - Frontend: Angular 17, Standalone Components, Reactive Forms, HttpClient
 - Infra: Docker, docker-compose
@@ -18,7 +18,7 @@ Clean Architecture / Hexagonal por capas: `Domain`, `Application`, `Infrastructu
 - .NET 8 SDK
 - Node 20+
 - Docker Desktop (para `docker compose up`)
-- SQL Server local (solo si corres sin Docker)
+- MySQL local opcional, p. ej. MySQL Workbench (solo si corres sin Docker)
 
 ## Configuración de base de datos
 
@@ -33,7 +33,7 @@ Scripts: `database/init.sql` (schema idempotente), `database/seed.sql` (5 profes
 Connection string (`src/API/appsettings.json` o env `ConnectionStrings__Default`):
 
 ```text
-Server=sqlserver,1433;Database=StudentDb;User Id=sa;Password=Str0ng_Passw0rd!;TrustServerCertificate=True;
+Server=mysql;Database=StudentDb;User=root;Password=Str0ng_Passw0rd!;
 ```
 
 ## Ejecución del backend
@@ -61,7 +61,7 @@ El frontend apunta a `http://localhost:5000/api` (ver `src/Frontend/src/environm
 docker compose up --build
 # Frontend: http://localhost:4200
 # API:      http://localhost:5000/swagger
-# SQL:      localhost:1433 (sa / Str0ng_Passw0rd!)
+# MySQL:    localhost:3306 (root / Str0ng_Passw0rd!)
 ```
 
 ## Ejecución de pruebas

@@ -14,7 +14,7 @@ builder.Services.AddSwaggerGen(c =>
 });
 
 var connectionString = builder.Configuration.GetConnectionString("Default")
-    ?? "Server=sqlserver,1433;Database=StudentDb;User Id=sa;Password=Str0ng_Passw0rd!;TrustServerCertificate=True;";
+    ?? "Server=mysql;Database=StudentDb;User=root;Password=Str0ng_Passw0rd!;";
 
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(connectionString);

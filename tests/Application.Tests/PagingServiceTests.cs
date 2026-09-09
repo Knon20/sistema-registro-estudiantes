@@ -14,6 +14,7 @@ public sealed class PagingServiceTests
     {
         var students = new Mock<IStudentRepository>();
         var programs = new Mock<IProgramRepository>();
+        var enrollments = new Mock<IEnrollmentRepository>();
         var uow = new Mock<IUnitOfWork>();
         var programId = Guid.NewGuid();
         var items = new List<Student>
@@ -27,7 +28,7 @@ public sealed class PagingServiceTests
         programs.Setup(p => p.ListAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<AcademicProgram> { new("Ing. Sistemas", "IS-01") });
 
-        var svc = new StudentService(students.Object, programs.Object, uow.Object);
+        var svc = new StudentService(students.Object, programs.Object, enrollments.Object, uow.Object);
         var result = await svc.ListPagedAsync(2, 10);
 
         result.Total.Should().Be(25);
@@ -40,6 +41,7 @@ public sealed class PagingServiceTests
     {
         var students = new Mock<IStudentRepository>();
         var programs = new Mock<IProgramRepository>();
+        var enrollments = new Mock<IEnrollmentRepository>();
         var uow = new Mock<IUnitOfWork>();
 
         students.Setup(s => s.ListPagedAsync(1, 100, It.IsAny<CancellationToken>()))
@@ -47,7 +49,7 @@ public sealed class PagingServiceTests
         programs.Setup(p => p.ListAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<AcademicProgram>());
 
-        var svc = new StudentService(students.Object, programs.Object, uow.Object);
+        var svc = new StudentService(students.Object, programs.Object, enrollments.Object, uow.Object);
         await svc.ListPagedAsync(0, 500);
 
         students.Verify(s => s.ListPagedAsync(1, 100, It.IsAny<CancellationToken>()), Times.Once);

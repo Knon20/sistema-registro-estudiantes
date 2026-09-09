@@ -5,24 +5,35 @@ export interface ConfirmOptions {
   message: string;
   confirmText?: string;
   cancelText?: string;
+  /** Optional third action (e.g. "Crear nuevo"). Shows an extra button. */
+  altText?: string;
+  /** Red (danger) or indigo (brand) accent for the confirm button. */
+  tone?: 'danger' | 'brand';
 }
 
+export type DialogResult = 'confirm' | 'alt' | 'cancel';
+
 /**
- * Futuristic confirm dialog state. Usage:
- *   const ok = await dialog.open({ title, message });
+ * Modal state. Usage:
+ *   const ok = await dialog.open({ title, message });                 // confirm/cancel
+ *   const choice = await dialog.openThree({ ..., altText: '...' });   // + third action
  * Renders through <app-confirm-dialog /> (mounted once in AppComponent).
  */
 @Injectable({ providedIn: 'root' })
 export class ConfirmDialogService {
   state = signal<ConfirmOptions | null>(null);
-  private resolver: ((value: boolean) => void) | null = null;
+  private resolver: ((value: DialogResult) => void) | null = null;
 
   open(opts: ConfirmOptions): Promise<boolean> {
-    this.state.set({ confirmText: 'Confirmar', cancelText: 'Cancelar', ...opts });
-    return new Promise<boolean>((resolve) => { this.resolver = resolve; });
+    return this.openThree(opts).then(r => r === 'confirm');
   }
 
-  resolve(value: boolean): void {
+  openThree(opts: ConfirmOptions): Promise<DialogResult> {
+    this.state.set({ confirmText: 'Confirmar', cancelText: 'Cancelar', tone: 'danger', ...opts });
+    return new Promise<DialogResult>((resolve) => { this.resolver = resolve; });
+  }
+
+  resolve(value: DialogResult): void {
     this.state.set(null);
     this.resolver?.(value);
     this.resolver = null;

@@ -15,9 +15,10 @@ import { ConfirmDialogService } from './confirm-dialog.service';
         </div>
         <h3>{{ opts.title }}</h3>
         <p class="muted">{{ opts.message }}</p>
-        <div class="actions">
-          <button class="btn" (click)="dialog.resolve(false)">{{ opts.cancelText }}</button>
-          <button class="btn danger-glow" (click)="dialog.resolve(true)" #confirmBtn>{{ opts.confirmText }}</button>
+        <div class="actions" [class.three]="opts.altText">
+          <button class="btn" (click)="dialog.resolve('cancel')">{{ opts.cancelText }}</button>
+          <button *ngIf="opts.altText" class="btn" (click)="dialog.resolve('alt')">{{ opts.altText }}</button>
+          <button class="btn" [class.danger-glow]="opts.tone !== 'brand'" [class.primary-glow]="opts.tone === 'brand'" (click)="dialog.resolve('confirm')">{{ opts.confirmText }}</button>
         </div>
       </div>
     </div>
@@ -67,6 +68,11 @@ import { ConfirmDialogService } from './confirm-dialog.service';
       border: none; color: #fff;
       box-shadow: 0 4px 20px rgba(211, 47, 47, .5);
     }
+    .primary-glow {
+      background: linear-gradient(92deg, var(--primary), var(--accent));
+      border: none; color: #fff;
+      box-shadow: 0 4px 20px rgba(79, 70, 229, .5);
+    }
     @keyframes fade-in { from { opacity: 0; } }
     @keyframes pop-in { from { opacity: 0; transform: scale(.92) translateY(10px); } }
     @media (max-width: 480px) {
@@ -80,10 +86,10 @@ export class ConfirmDialogComponent {
 
   @HostListener('document:keydown.escape')
   onEscape(): void {
-    if (this.dialog.state()) this.dialog.resolve(false);
+    if (this.dialog.state()) this.dialog.resolve('cancel');
   }
 
   onBackdrop(event: MouseEvent): void {
-    if (event.target === event.currentTarget) this.dialog.resolve(false);
+    if (event.target === event.currentTarget) this.dialog.resolve('cancel');
   }
 }

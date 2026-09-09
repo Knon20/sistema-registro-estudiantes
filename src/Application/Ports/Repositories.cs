@@ -6,8 +6,11 @@ namespace Application.Ports;
 public interface IStudentRepository
 {
     Task<Student?> GetByIdAsync(Guid id, CancellationToken ct = default);
+    Task<Student?> GetByIdIncludingDeletedAsync(Guid id, CancellationToken ct = default);
     Task<Student?> GetByEmailAsync(string email, CancellationToken ct = default);
     Task<Student?> GetByDocumentAsync(string documentId, CancellationToken ct = default);
+    Task<Student?> GetByEmailIncludingDeletedAsync(string email, CancellationToken ct = default);
+    Task<Student?> GetByDocumentIncludingDeletedAsync(string documentId, CancellationToken ct = default);
     Task<IReadOnlyList<Student>> ListAsync(CancellationToken ct = default);
     Task<PagedSlice<Student>> ListPagedAsync(int page, int pageSize, CancellationToken ct = default);
     Task<IReadOnlyList<Student>> GetByIdsAsync(IEnumerable<Guid> ids, CancellationToken ct = default);

@@ -25,7 +25,7 @@ public sealed class StudentService
         _uow = uow;
     }
 
-    public async Task<StudentDto> CreateAsync(CreateStudentRequest req, CancellationToken ct = default)
+    public async Task<StudentDto> CreateAsync(CreateStudentRequest req, bool forceCreate = false, CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(req.FullName) || req.FullName.Trim().Length < 3)
             throw new DomainException(ErrorCodes.ValidationFailed, "FullName must have at least 3 characters.");
@@ -37,10 +37,46 @@ public sealed class StudentService
         if (await _students.GetByDocumentAsync(req.DocumentId.Trim(), ct) is not null)
             throw new DuplicateEntityException(ErrorCodes.StudentDuplicated, "A student with the same document already exists.");
 
+        if (!forceCreate)
+        {
+            // A soft-deleted record owns the email/document: don't fail silently,
+            // let the client choose reactivate vs. create-new.
+            // NOTE: sequential awaits — DbContext is not thread-safe (no Task.WhenAll).
+            var byEmail = await _students.GetByEmailIncludingDeletedAsync(req.Email.Trim(), ct);
+            var byDoc = await _students.GetByDocumentIncludingDeletedAsync(req.DocumentId.Trim(), ct);
+            var deletedMatches = new[] { byEmail, byDoc }
+                .Where(s => s is not null && s!.DeletedAt is not null)
+                .GroupBy(s => s!.Id)
+                .Select(g => g.First()!)
+                .ToList();
+
+            if (deletedMatches.Count > 1)
+                throw new DuplicateEntityException(ErrorCodes.StudentDuplicated,
+                    "Email and document belong to different deleted records. Contact support.");
+
+            if (deletedMatches.Count == 1)
+            {
+                var match = deletedMatches[0];
+                throw new DeletedStudentExistsException(new DeletedStudentInfo(
+                    match.Id, match.FullName, match.Email, match.DeletedAt));
+            }
+        }
+
         var student = new Student(req.FullName, req.Email, req.DocumentId, req.ProgramId);
         await _students.AddAsync(student, ct);
         await _uow.SaveChangesAsync(ct);
         return new StudentDto(student.Id, student.FullName, student.Email, student.DocumentId, student.ProgramId, program.Name, student.CreatedAt);
+    }
+
+    /// <summary>Reactivates a soft-deleted student (its enrollments stay deleted).</summary>
+    public async Task<StudentDto> RestoreAsync(Guid id, CancellationToken ct = default)
+    {
+        var s = await _students.GetByIdIncludingDeletedAsync(id, ct)
+            ?? throw new EntityNotFoundException(ErrorCodes.StudentNotFound, "Student not found.");
+        s.Restore();
+        await _uow.SaveChangesAsync(ct);
+        var program = await _programs.GetByIdAsync(s.ProgramId, ct);
+        return new StudentDto(s.Id, s.FullName, s.Email, s.DocumentId, s.ProgramId, program?.Name, s.CreatedAt);
     }
 
     public async Task<StudentDto> GetAsync(Guid id, CancellationToken ct = default)

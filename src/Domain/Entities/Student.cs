@@ -56,4 +56,10 @@ public sealed class Student : Entity
     {
         DeletedAt ??= DateTime.UtcNow;
     }
+
+    /// <summary>Re-activates a soft-deleted record (re-registration).</summary>
+    public void Restore()
+    {
+        DeletedAt = null;
+    }
 }

@@ -4,5 +4,6 @@ export interface CourseDto { id: string; name: string; code: string; credits: nu
 export interface StudentDto { id: string; fullName: string; email: string; documentId: string; programId: string; programName?: string | null; createdAt: string; }
 export interface EnrollmentDto { id: string; studentId: string; studentName: string; period: string; totalCredits: number; courses: CourseDto[]; createdAt: string; updatedAt?: string | null; }
 export interface ClassmateDto { studentId: string; fullName: string; }
-export interface ApiError { code: string; message: string; }
+export interface ApiError { code: string; message: string; data?: DeletedStudentInfo | null; }
+export interface DeletedStudentInfo { id: string; fullName: string; email: string; deletedAt?: string | null; }
 export interface Paged<T> { items: T[]; total: number; }

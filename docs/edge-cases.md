@@ -2,7 +2,8 @@
 
 | Escenario | Comportamiento esperado |
 |-----------|------------------------|
-| Registrar estudiante duplicado (email/documento) | 409 `STUDENT_DUPLICATED` |
+| Registrar estudiante duplicado (email/documento activo) | 409 `STUDENT_DUPLICATED` |
+| Re-registrar email/documento de un eliminado | 409 `STUDENT_DELETED_EXISTS` + datos del candidato → UI ofrece Reactivar (`POST /api/students/{id}/restore`) o Crear nuevo (`POST /api/students?forceCreate=true`, nuevo ID) |
 | Inscribir más de 3 materias | 422 `ENROLLMENT_COURSE_COUNT_INVALID` |
 | Inscribir menos de 3 materias | 422 `ENROLLMENT_COURSE_COUNT_INVALID` |
 | Dos materias del mismo profesor | 422 `COURSE_PROFESSOR_CONFLICT` |

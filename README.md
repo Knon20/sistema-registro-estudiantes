@@ -70,16 +70,17 @@ docker compose up --build
 dotnet test
 ```
 
-32 pruebas: dominio (11) + aplicación (21) con xUnit + Moq + FluentAssertions.
+41 pruebas: dominio (13) + aplicación (28) con xUnit + Moq + FluentAssertions.
 
 ## Endpoints principales
 
 ```text
-POST   /api/students
+POST   /api/students[?forceCreate=true]
 GET    /api/students?page=1&pageSize=20          -> {items, total}
 GET    /api/students/{id}
 PUT    /api/students/{id}
-DELETE /api/students/{id}
+DELETE /api/students/{id}                        (soft delete)
+POST   /api/students/{id}/restore                (reactiva eliminado)
 
 GET    /api/programs|professors|courses?page=&pageSize=   -> {items, total}
 

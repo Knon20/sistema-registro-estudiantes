@@ -2,7 +2,7 @@ using Domain.Exceptions;
 
 namespace API.Middleware;
 
-public sealed record ErrorResponse(string Code, string Message);
+public sealed record ErrorResponse(string Code, string Message, object? Data = null);
 
 public sealed class ExceptionHandlingMiddleware
 {
@@ -20,6 +20,10 @@ public sealed class ExceptionHandlingMiddleware
         try
         {
             await _next(context);
+        }
+        catch (DeletedStudentExistsException ex)
+        {
+            await WriteAsync(context, StatusCodes.Status409Conflict, ex.Code, ex.Message, ex.Candidate);
         }
         catch (InvalidEnrollmentException ex)
         {
@@ -52,10 +56,10 @@ public sealed class ExceptionHandlingMiddleware
         }
     }
 
-    private static Task WriteAsync(HttpContext context, int status, string code, string message)
+    private static Task WriteAsync(HttpContext context, int status, string code, string message, object? data = null)
     {
         context.Response.StatusCode = status;
         context.Response.ContentType = "application/json";
-        return context.Response.WriteAsJsonAsync(new ErrorResponse(code, message));
+        return context.Response.WriteAsJsonAsync(new ErrorResponse(code, message, data));
     }
 }

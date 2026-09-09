@@ -4,7 +4,8 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { StudentService } from '../../core/services/student.service';
 import { CatalogService } from '../../core/services/catalog.service';
-import { ProgramDto } from '../../core/models';
+import { ConfirmDialogService } from '../../shared/confirm-dialog/confirm-dialog.service';
+import { ProgramDto, DeletedStudentInfo } from '../../core/models';
 import { apiMessage } from '../../core/http/api-error';
 
 @Component({
@@ -50,6 +51,7 @@ export class StudentFormComponent implements OnInit {
   private fb = inject(FormBuilder);
   private api = inject(StudentService);
   private catalog = inject(CatalogService);
+  private dialog = inject(ConfirmDialogService);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
 
@@ -102,10 +104,46 @@ export class StudentFormComponent implements OnInit {
         error: (e) => { this.error.set(apiMessage(e, 'No se pudo guardar.')); this.saving.set(false); }
       });
     } else {
-      this.api.create({ fullName: v.fullName!, email: v.email!, documentId: v.documentId!, programId: v.programId! }).subscribe({
-        next: (created) => this.router.navigate(['/enrollment', created.id]),
-        error: (e) => { this.error.set(apiMessage(e, 'No se pudo guardar.')); this.saving.set(false); }
+      this.create(false);
+    }
+  }
+
+  private create(forceCreate: boolean): void {
+    const v = this.form.getRawValue();
+    this.saving.set(true);
+    this.error.set(null);
+    this.api.create(
+      { fullName: v.fullName!, email: v.email!, documentId: v.documentId!, programId: v.programId! },
+      forceCreate
+    ).subscribe({
+      next: (created) => this.router.navigate(['/enrollment', created.id]),
+      error: (e) => {
+        this.saving.set(false);
+        if (!forceCreate && (e.error?.code === 'STUDENT_DELETED_EXISTS') && e.error?.data) {
+          this.askReactivate(e.error.data as DeletedStudentInfo);
+        } else {
+          this.error.set(apiMessage(e, 'No se pudo guardar.'));
+        }
+      }
+    });
+  }
+
+  private async askReactivate(candidate: DeletedStudentInfo): Promise<void> {
+    const choice = await this.dialog.openThree({
+      title: 'El estudiante ya existió',
+      message: `${candidate.fullName} (${candidate.email}) tiene un registro eliminado. ¿Reactivarlo o crear uno nuevo con otro ID?`,
+      confirmText: 'Reactivar',
+      altText: 'Crear nuevo',
+      tone: 'brand',
+    });
+    if (choice === 'confirm') {
+      this.saving.set(true);
+      this.api.restore(candidate.id).subscribe({
+        next: (restored) => this.router.navigate(['/students', restored.id]),
+        error: (e) => { this.error.set(apiMessage(e, 'No se pudo reactivar.')); this.saving.set(false); }
       });
+    } else if (choice === 'alt') {
+      this.create(true);
     }
   }
 }

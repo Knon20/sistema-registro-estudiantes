@@ -55,8 +55,10 @@ public sealed class AppDbContext : DbContext
             e.Property(x => x.Email).HasMaxLength(150).IsRequired();
             e.Property(x => x.DocumentId).HasMaxLength(50).IsRequired();
             e.Property(x => x.CreatedAt).IsRequired();
-            e.HasIndex(x => x.Email).IsUnique();
-            e.HasIndex(x => x.DocumentId).IsUnique();
+            // Non-unique by design: a deleted record may share email/document with a new one.
+            // Uniqueness among ACTIVE records is enforced in Application (StudentService).
+            e.HasIndex(x => x.Email);
+            e.HasIndex(x => x.DocumentId);
             e.HasOne<AcademicProgram>().WithMany().HasForeignKey(x => x.ProgramId).OnDelete(DeleteBehavior.Restrict);
             e.HasQueryFilter(x => x.DeletedAt == null);
         });

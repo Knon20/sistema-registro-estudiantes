@@ -30,8 +30,12 @@ export class StudentService {
     return this.http.get<StudentDto>(`${this.base}/${id}`);
   }
 
-  create(payload: CreateStudentPayload): Observable<StudentDto> {
-    return this.http.post<StudentDto>(this.base, payload);
+  create(payload: CreateStudentPayload, forceCreate = false): Observable<StudentDto> {
+    return this.http.post<StudentDto>(this.base, payload, { params: { forceCreate } });
+  }
+
+  restore(id: string): Observable<StudentDto> {
+    return this.http.post<StudentDto>(`${this.base}/${id}/restore`, {});
   }
 
   update(id: string, payload: UpdateStudentPayload): Observable<StudentDto> {

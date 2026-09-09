@@ -13,9 +13,12 @@ public sealed class StudentsController : ControllerBase
 
     [HttpPost]
     [ProducesResponseType(typeof(StudentDto), StatusCodes.Status201Created)]
-    public async Task<IActionResult> Create([FromBody] CreateStudentRequest req, CancellationToken ct)
+    public async Task<IActionResult> Create(
+        [FromBody] CreateStudentRequest req,
+        [FromQuery] bool forceCreate = false,
+        CancellationToken ct = default)
     {
-        var created = await _service.CreateAsync(req, ct);
+        var created = await _service.CreateAsync(req, forceCreate, ct);
         return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
     }
 
@@ -49,6 +52,14 @@ public sealed class StudentsController : ControllerBase
     {
         await _service.DeleteAsync(id, ct);
         return NoContent();
+    }
+
+    [HttpPost("{id:guid}/restore")]
+    [ProducesResponseType(typeof(StudentDto), StatusCodes.Status200OK)]
+    public async Task<IActionResult> Restore(Guid id, CancellationToken ct)
+    {
+        var dto = await _service.RestoreAsync(id, ct);
+        return Ok(dto);
     }
 }
 

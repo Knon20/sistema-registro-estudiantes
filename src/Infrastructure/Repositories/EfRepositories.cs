@@ -14,11 +14,20 @@ public sealed class EfStudentRepository : IStudentRepository
     public Task<Student?> GetByIdAsync(Guid id, CancellationToken ct = default) =>
         _db.Students.FirstOrDefaultAsync(s => s.Id == id, ct);
 
+    public Task<Student?> GetByIdIncludingDeletedAsync(Guid id, CancellationToken ct = default) =>
+        _db.Students.IgnoreQueryFilters().FirstOrDefaultAsync(s => s.Id == id, ct);
+
     public Task<Student?> GetByEmailAsync(string email, CancellationToken ct = default) =>
         _db.Students.FirstOrDefaultAsync(s => s.Email == email.Trim().ToLower(), ct);
 
     public Task<Student?> GetByDocumentAsync(string documentId, CancellationToken ct = default) =>
         _db.Students.FirstOrDefaultAsync(s => s.DocumentId == documentId.Trim(), ct);
+
+    public Task<Student?> GetByEmailIncludingDeletedAsync(string email, CancellationToken ct = default) =>
+        _db.Students.IgnoreQueryFilters().FirstOrDefaultAsync(s => s.Email == email.Trim().ToLower(), ct);
+
+    public Task<Student?> GetByDocumentIncludingDeletedAsync(string documentId, CancellationToken ct = default) =>
+        _db.Students.IgnoreQueryFilters().FirstOrDefaultAsync(s => s.DocumentId == documentId.Trim(), ct);
 
     public async Task<IReadOnlyList<Student>> ListAsync(CancellationToken ct = default) =>
         await _db.Students.OrderBy(s => s.FullName).ToListAsync(ct);

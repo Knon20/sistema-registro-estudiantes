@@ -119,4 +119,16 @@ public sealed class EnrollmentRulesTests
         enrollment.DeletedAt.Should().NotBeNull();
         enrollment.IsActive.Should().BeFalse();
     }
+
+    [Fact]
+    public void Restore_clears_DeletedAt()
+    {
+        var student = new Student("Ana Gil", "ana@uni.edu", "1001", Guid.NewGuid());
+        student.MarkDeleted();
+        student.IsActive.Should().BeFalse();
+
+        student.Restore();
+        student.DeletedAt.Should().BeNull();
+        student.IsActive.Should().BeTrue();
+    }
 }

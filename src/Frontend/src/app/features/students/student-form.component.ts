@@ -1,16 +1,17 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { StudentService } from '../../core/services/student.service';
 import { CatalogService } from '../../core/services/catalog.service';
+import { NavigationService } from '../../core/navigation/navigation.service';
 import { ProgramDto } from '../../core/models';
 import { apiMessage } from '../../core/http/api-error';
 
 @Component({
   selector: 'app-student-form',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterLink],
+  imports: [CommonModule, ReactiveFormsModule],
   template: `
     <section class="card form-card">
       <h2>{{ isEdit ? 'Editar estudiante' : 'Nuevo estudiante' }}</h2>
@@ -33,7 +34,7 @@ import { apiMessage } from '../../core/http/api-error';
         </label>
         <div class="row">
           <button class="btn primary" type="submit" [disabled]="form.invalid || saving()">Guardar</button>
-          <a routerLink="/students" class="btn">Volver</a>
+          <button class="btn" type="button" (click)="nav.back()">Volver</button>
         </div>
       </form>
     </section>
@@ -52,6 +53,7 @@ export class StudentFormComponent implements OnInit {
   private catalog = inject(CatalogService);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
+  protected nav = inject(NavigationService);
 
   form = this.fb.group({
     fullName: ['', [Validators.required, Validators.minLength(3)]],

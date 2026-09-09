@@ -1,17 +1,18 @@
 import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute } from '@angular/router';
 import { CatalogService } from '../../core/services/catalog.service';
 import { EnrollmentService } from '../../core/services/enrollment.service';
 import { StudentService } from '../../core/services/student.service';
+import { NavigationService } from '../../core/navigation/navigation.service';
 import { CourseDto, EnrollmentDto } from '../../core/models';
 import { apiMessage } from '../../core/http/api-error';
 
 @Component({
   selector: 'app-enrollment',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, FormsModule],
   template: `
     <section class="card">
       <h2>Inscripción · {{ studentName() }}</h2>
@@ -40,7 +41,7 @@ import { apiMessage } from '../../core/http/api-error';
 
       <div class="row">
         <button class="btn primary" (click)="save()" [disabled]="!canSave() || saving()">{{ hasExisting() ? 'Actualizar inscripción' : 'Crear inscripción' }}</button>
-        <a routerLink="/students" class="btn">Volver</a>
+        <button class="btn" (click)="nav.back()">Volver</button>
         <label class="period">Periodo <input [(ngModel)]="period" /></label>
       </div>
 
@@ -86,6 +87,7 @@ export class EnrollmentComponent implements OnInit {
   private catalog = inject(CatalogService);
   private enrollments = inject(EnrollmentService);
   private students = inject(StudentService);
+  protected nav = inject(NavigationService);
 
   courses = signal<CourseDto[]>([]);
   selectedIds = signal<string[]>([]);

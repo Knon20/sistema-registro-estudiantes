@@ -12,6 +12,7 @@ public static class ErrorCodes
     public const string StudentNotFound = "STUDENT_NOT_FOUND";
     public const string StudentDuplicated = "STUDENT_DUPLICATED";
     public const string StudentDeletedExists = "STUDENT_DELETED_EXISTS";
+    public const string ClassmatesForbidden = "CLASSMATES_FORBIDDEN";
     public const string EnrollmentDuplicated = "ENROLLMENT_DUPLICATED";
     public const string EnrollmentNotFound = "ENROLLMENT_NOT_FOUND";
     public const string ConcurrencyConflict = "CONCURRENCY_CONFLICT";
@@ -31,6 +32,11 @@ public sealed class EntityNotFoundException : DomainException
 public sealed class DuplicateEntityException : DomainException
 {
     public DuplicateEntityException(string code, string message) : base(code, message) { }
+}
+
+public sealed class ForbiddenException : DomainException
+{
+    public ForbiddenException(string code, string message) : base(code, message) { }
 }
 
 /// <summary>

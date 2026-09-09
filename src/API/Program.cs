@@ -19,6 +19,9 @@ var connectionString = builder.Configuration.GetConnectionString("Default")
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(connectionString);
 
+builder.Services.AddHealthChecks()
+    .AddDbContextCheck<AppDbContext>("mysql");
+
 builder.Services.AddCors(opt => opt.AddPolicy("frontend", p =>
     p.WithOrigins("http://localhost:4200").AllowAnyHeader().AllowAnyMethod()));
 
@@ -32,6 +35,7 @@ app.UseSwaggerUI();
 app.UseCors("frontend");
 app.UseAuthorization();
 app.MapControllers();
+app.MapHealthChecks("/health");
 
 // Auto-migrate + seed (simple bootstrap for the technical test).
 using (var scope = app.Services.CreateScope())

@@ -113,11 +113,19 @@ public sealed class EnrollmentsController : ControllerBase
         return Ok(dto);
     }
 
-    /// <summary>Returns ONLY the names of classmates in a course, paged.</summary>
+    /// <summary>
+    /// Returns ONLY the names of classmates in a course, paged.
+    /// The requester (studentId) must be enrolled in the course.
+    /// </summary>
     [HttpGet("courses/{courseId:guid}/classmates")]
-    public async Task<IActionResult> Classmates(Guid courseId, [FromQuery] int page = 1, [FromQuery] int pageSize = 20, CancellationToken ct = default)
+    public async Task<IActionResult> Classmates(
+        Guid courseId,
+        [FromQuery] Guid studentId,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20,
+        CancellationToken ct = default)
     {
-        var result = await _service.ClassmatesPagedAsync(courseId, page, pageSize, ct);
+        var result = await _service.ClassmatesPagedAsync(courseId, studentId, page, pageSize, ct);
         return Ok(result);
     }
 }

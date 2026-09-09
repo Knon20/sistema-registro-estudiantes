@@ -48,6 +48,7 @@ public interface IEnrollmentRepository
     Task<Enrollment?> GetByIdAsync(Guid id, CancellationToken ct = default);
     Task<IReadOnlyList<Enrollment>> ListByCourseAsync(Guid courseId, CancellationToken ct = default);
     Task<PagedSlice<Enrollment>> ListByCoursePagedAsync(Guid courseId, int page, int pageSize, CancellationToken ct = default);
+    Task<bool> IsEnrolledAsync(Guid studentId, Guid courseId, CancellationToken ct = default);
     Task AddAsync(Enrollment enrollment, CancellationToken ct = default);
 }
 

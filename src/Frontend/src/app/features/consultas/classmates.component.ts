@@ -3,7 +3,8 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { CatalogService } from '../../core/services/catalog.service';
 import { EnrollmentService } from '../../core/services/enrollment.service';
-import { CourseDto, ClassmateDto } from '../../core/models';
+import { StudentService } from '../../core/services/student.service';
+import { CourseDto, ClassmateDto, StudentDto } from '../../core/models';
 import { apiMessage } from '../../core/http/api-error';
 
 @Component({
@@ -13,8 +14,14 @@ import { apiMessage } from '../../core/http/api-error';
   template: `
     <section class="card mates-card">
       <h2>Compañeros por materia · {{ total() }}</h2>
-      <p class="muted">Solo se muestran los <strong>nombres</strong> de los compañeros (sin datos sensibles).</p>
+      <p class="muted">Solo se muestran los <strong>nombres</strong> de los compañeros (sin datos sensibles). Debes estar inscrito en la materia para verlos.</p>
       <p *ngIf="error()" class="error">{{ error() }}</p>
+      <label>Consultar como (estudiante)
+        <select [(ngModel)]="requesterId" (ngModelChange)="resetAndLoad()">
+          <option value="">Seleccione quién eres...</option>
+          <option *ngFor="let s of students()" [value]="s.id">{{ s.fullName }}</option>
+        </select>
+      </label>
       <label>Materia
         <select [(ngModel)]="selectedCourse" (ngModelChange)="resetAndLoad()">
           <option value="">Seleccione...</option>
@@ -52,13 +59,16 @@ import { apiMessage } from '../../core/http/api-error';
 export class ClassmatesComponent implements OnInit {
   private catalog = inject(CatalogService);
   private enrollments = inject(EnrollmentService);
+  private studentsApi = inject(StudentService);
 
   courses = signal<CourseDto[]>([]);
+  students = signal<StudentDto[]>([]);
   classmates = signal<ClassmateDto[]>([]);
   total = signal(0);
   page = signal(1);
   readonly pageSize = 20;
   selectedCourse = '';
+  requesterId = '';
   loading = signal(false);
   error = signal<string | null>(null);
 
@@ -68,6 +78,7 @@ export class ClassmatesComponent implements OnInit {
 
   ngOnInit(): void {
     this.catalog.courses().subscribe({ next: (res) => this.courses.set(res.items) });
+    this.studentsApi.list(1, 100).subscribe({ next: (res) => this.students.set(res.items) });
   }
 
   resetAndLoad(): void {
@@ -84,10 +95,17 @@ export class ClassmatesComponent implements OnInit {
   }
 
   load(): void {
-    if (!this.selectedCourse) { this.classmates.set([]); this.total.set(0); return; }
+    if (!this.selectedCourse || !this.requesterId) {
+      this.classmates.set([]);
+      this.total.set(0);
+      if (this.selectedCourse && !this.requesterId) {
+        this.error.set('Selecciona qué estudiante eres para consultar.');
+      }
+      return;
+    }
     this.loading.set(true);
     this.error.set(null);
-    this.enrollments.classmates(this.selectedCourse, this.page(), this.pageSize).subscribe({
+    this.enrollments.classmates(this.selectedCourse, this.requesterId, this.page(), this.pageSize).subscribe({
       next: (res) => { this.classmates.set(res.items); this.total.set(res.total); this.loading.set(false); },
       error: (e) => { this.error.set(apiMessage(e, 'No se pudo cargar los compañeros.')); this.classmates.set([]); this.loading.set(false); }
     });

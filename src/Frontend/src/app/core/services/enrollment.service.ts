@@ -21,7 +21,7 @@ export class EnrollmentService {
     return this.http.put<EnrollmentDto>(`${this.base}/student/${studentId}`, { courseIds }, { params: { period } });
   }
 
-  classmates(courseId: string, page = 1, pageSize = 20): Observable<Paged<ClassmateDto>> {
-    return this.http.get<Paged<ClassmateDto>>(`${this.base}/courses/${courseId}/classmates`, { params: { page, pageSize } });
+  classmates(courseId: string, studentId: string, page = 1, pageSize = 20): Observable<Paged<ClassmateDto>> {
+    return this.http.get<Paged<ClassmateDto>>(`${this.base}/courses/${courseId}/classmates`, { params: { studentId, page, pageSize } });
   }
 }

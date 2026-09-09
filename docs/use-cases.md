@@ -12,6 +12,6 @@
 | CU-07 | Crear inscripción | `POST /api/enrollments` `{studentId, period, courseIds[3]}` | 201 `EnrollmentDto` (9 créditos) | 404 student/course, 409 `ENROLLMENT_DUPLICATED`, 422 reglas |
 | CU-08 | Consultar inscripción | `GET /api/enrollments/student/{id}?period=` | 200 `EnrollmentDto` / 404 | 404 student o enrollment |
 | CU-09 | Actualizar inscripción | `PUT /api/enrollments/student/{id}?period=` `{courseIds[3]}` | 200 `EnrollmentDto` | mismas reglas que CU-07 + 404 si no existe |
-| CU-10 | Compañeros por materia | `GET /api/enrollments/courses/{courseId}/classmates?page=&pageSize=` | 200 `{items: [{studentId, fullName}], total}` solo nombres, una sola query batch | 404 si materia no existe; `{items: [], total: 0}` si nadie inscrito |
+| CU-10 | Compañeros por materia | `GET /api/enrollments/courses/{courseId}/classmates?studentId=&page=&pageSize=` | 200 `{items: [{studentId, fullName}], total}` solo nombres; el consultante debe estar inscrito | 404 materia inexistente; 400 sin `studentId`; 403 `CLASSMATES_FORBIDDEN` si no está inscrito; `{items: [], total: 0}` si nadie inscrito |
 
 Periodo por defecto: `2026-1`.

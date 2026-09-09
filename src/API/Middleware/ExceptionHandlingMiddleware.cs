@@ -25,6 +25,10 @@ public sealed class ExceptionHandlingMiddleware
         {
             await WriteAsync(context, StatusCodes.Status409Conflict, ex.Code, ex.Message, ex.Candidate);
         }
+        catch (ForbiddenException ex)
+        {
+            await WriteAsync(context, StatusCodes.Status403Forbidden, ex.Code, ex.Message);
+        }
         catch (InvalidEnrollmentException ex)
         {
             await WriteAsync(context, StatusCodes.Status422UnprocessableEntity, ex.Code, ex.Message);

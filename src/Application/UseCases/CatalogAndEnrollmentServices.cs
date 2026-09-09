@@ -159,13 +159,20 @@ public sealed class EnrollmentService
 
     /// <summary>
     /// Returns ONLY names of classmates sharing the course (privacy rule), paged.
+    /// The requester must be enrolled in the course; otherwise 403.
     /// Students are loaded in a single batch query (no N+1).
     /// Empty page when nobody is enrolled.
     /// </summary>
-    public async Task<PagedResult<ClassmateDto>> ClassmatesPagedAsync(Guid courseId, int page, int pageSize, CancellationToken ct = default)
+    public async Task<PagedResult<ClassmateDto>> ClassmatesPagedAsync(
+        Guid courseId, Guid requesterStudentId, int page, int pageSize, CancellationToken ct = default)
     {
+        if (requesterStudentId == Guid.Empty)
+            throw new DomainException(ErrorCodes.ValidationFailed, "Requester student is required.");
         if (!await _courses.ExistsAsync(courseId, ct))
             throw new EntityNotFoundException(ErrorCodes.CourseNotFound, "Course does not exist.");
+        if (!await _enrollments.IsEnrolledAsync(requesterStudentId, courseId, ct))
+            throw new ForbiddenException(ErrorCodes.ClassmatesForbidden,
+                "Only students enrolled in this course can see their classmates.");
 
         var req = PageRequest.Normalize(page, pageSize);
         var slice = await _enrollments.ListByCoursePagedAsync(courseId, req.Page, req.PageSize, ct);

@@ -16,6 +16,8 @@
 | Consultar estudiante inexistente | 404 `STUDENT_NOT_FOUND` |
 | Compañeros de materia sin inscritos | 200 `[]` |
 | Compañeros de materia inexistente | 404 `COURSE_NOT_FOUND` |
+| Consultar compañeros sin estar inscrito | 403 `CLASSMATES_FORBIDDEN` |
+| Consultar compañeros sin identificarse | 400 `VALIDATION_FAILED` |
 | Inscripción inexistente (GET) | 404 `ENROLLMENT_NOT_FOUND` |
 
 Los errores de negocio usan el formato `{ "code": "...", "message": "..." }` sin stack traces (middleware centralizado).

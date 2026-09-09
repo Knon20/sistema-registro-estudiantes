@@ -70,7 +70,7 @@ docker compose up --build
 dotnet test
 ```
 
-41 pruebas: dominio (13) + aplicación (28) con xUnit + Moq + FluentAssertions.
+64 pruebas verdes: 44 unitarias backend (13 dominio + 31 aplicación, xUnit + Moq + FluentAssertions), 10 de integración API (WebApplicationFactory + MySQL real vía Testcontainers) y 10 de frontend (Karma/Jasmine).
 
 ## Endpoints principales
 
@@ -87,8 +87,16 @@ GET    /api/programs|professors|courses?page=&pageSize=   -> {items, total}
 POST   /api/enrollments                        {studentId, period, courseIds[3]}
 GET    /api/enrollments/student/{id}?period=
 PUT    /api/enrollments/student/{id}?period=   {courseIds[3]}
-GET    /api/enrollments/courses/{courseId}/classmates?page=&pageSize=   -> solo [{studentId, fullName}]
+GET    /api/enrollments/courses/{courseId}/classmates?studentId=&page=&pageSize=   -> solo [{studentId, fullName}], 403 si no inscrito
 ```
+
+## Salud y CI
+
+```text
+GET    /health   -> 200 si API + MySQL responden
+```
+
+CI en GitHub Actions (`.github/workflows/ci.yml`): `dotnet build/test` (incluye integración con MySQL vía Testcontainers) + `ng test` + `ng build`.
 
 Errores de negocio: `{ "code": "COURSE_PROFESSOR_CONFLICT", "message": "..." }` con el HTTP apropiado (400/404/409/422).
 

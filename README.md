@@ -106,7 +106,21 @@ Errores de negocio: `{ "code": "COURSE_PROFESSOR_CONFLICT", "message": "..." }` 
 - `Enrollment` como agregado rico: las invariantes viven en el dominio, no en controllers.
 - Sin MediatR/AutoMapper: mapeo manual y servicios delgados (evita sobreingeniería).
 - Índice único `(StudentId, Period)` + `SaveChanges` transaccional para concurrencia.
-- Privacidad por diseño: compañeros solo expone nombres.
+- Privacidad por diseño: compañeros solo expone nombres y exige estar inscrito (403 si no).
+
+## Mejoras consideradas (fuera del alcance de la prueba)
+
+Se evaluaron y se descartaron conscientemente por no estar en el RQ (YAGNI). El diseño las soporta sin reescribir el dominio:
+
+- **Login JWT + refresh tokens y roles (estudiante/admin):** sin login porque el RQ no lo pide; la autorización contextual (`studentId` inscrito) cubre la privacidad exigida. Punto de entrada natural: middleware JWT + `[Authorize]` en controllers, sin tocar `Domain`.
+- **Reportes de ocupación por materia:** queries de lectura nuevas sobre `EnrollmentCourses`; no requieren cambios de modelo.
+- **Caché distribuida (Redis) para catálogo:** el catálogo cambia poco; hoy va directo a MySQL con paginación (suficiente a esta escala).
+- **Rate limiting y throttling:** ASP.NET tiene `AddRateLimiter`; no se exigía protección contra abuso.
+- **Observabilidad (Serilog/OpenTelemetry + dashboards):** hoy hay logs estándar + `/health`; tracing distribuido sería el siguiente paso en producción.
+- **Notificaciones por email al inscribirse:** outbox + worker; fuera del RQ.
+- **E2E con Playwright/Cypress:** hay 69 pruebas (unidad + integración + frontend); el flujo crítico ya está cubierto, E2E de navegador sería el complemento.
+- **Manifiestos Kubernetes:** el `docker-compose` + `/health` cubre el despliegue pedido; K8s es el siguiente escalón.
+- **i18n y auditoría visible (quién eliminó/restauró):** `DeletedAt` ya preserva el rastro en BD; UI de auditoría no pedida.
 
 ## Estructura
 

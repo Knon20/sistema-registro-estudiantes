@@ -9,6 +9,8 @@ export interface ConfirmOptions {
   altText?: string;
   /** Red (danger) or indigo (brand) accent for the confirm button. */
   tone?: 'danger' | 'brand';
+  /** Info-only modal: hides the cancel button. */
+  hideCancel?: boolean;
 }
 
 export type DialogResult = 'confirm' | 'alt' | 'cancel';

@@ -186,6 +186,30 @@ public sealed class EnrollmentService
         return new PagedResult<ClassmateDto>(items, slice.Total);
     }
 
+    /// <summary>
+    /// Distinct courses across all active enrollments of a student (all periods).
+    /// Bounded by construction: a student only ever sees their own courses.
+    /// </summary>
+    public async Task<IReadOnlyList<CourseDto>> StudentCoursesAsync(Guid studentId, CancellationToken ct = default)
+    {
+        _ = await _students.GetByIdAsync(studentId, ct)
+            ?? throw new EntityNotFoundException(ErrorCodes.StudentNotFound, "Student not found.");
+
+        var enrollments = await _enrollments.ListByStudentAsync(studentId, ct);
+        var courseIds = enrollments.SelectMany(e => e.CourseIds()).Distinct().ToList();
+        if (courseIds.Count == 0) return Array.Empty<CourseDto>();
+
+        var courses = await _courses.GetByIdsAsync(courseIds, ct);
+        var professors = await _professors.ListAsync(ct);
+        var pmap = professors.ToDictionary(p => p.Id, p => p.FullName);
+        return courses
+            .OrderBy(c => c.Code)
+            .Select(c => new CourseDto(
+                c.Id, c.Name, c.Code, c.Credits, c.ProfessorId,
+                pmap.TryGetValue(c.ProfessorId, out var n) ? n : null))
+            .ToList();
+    }
+
     private async Task<EnrollmentDto> ToDtoAsync(Enrollment enrollment, string studentName, CancellationToken ct)
     {
         var allCourses = await _courses.GetByIdsAsync(enrollment.CourseIds(), ct);

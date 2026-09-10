@@ -9,7 +9,12 @@ namespace API.Controllers;
 public sealed class StudentsController : ControllerBase
 {
     private readonly StudentService _service;
-    public StudentsController(StudentService service) => _service = service;
+    private readonly EnrollmentService _enrollments;
+    public StudentsController(StudentService service, EnrollmentService enrollments)
+    {
+        _service = service;
+        _enrollments = enrollments;
+    }
 
     [HttpPost]
     [ProducesResponseType(typeof(StudentDto), StatusCodes.Status201Created)]
@@ -60,6 +65,15 @@ public sealed class StudentsController : ControllerBase
     {
         var dto = await _service.RestoreAsync(id, ct);
         return Ok(dto);
+    }
+
+    /// <summary>Distinct courses across all active enrollments of a student.</summary>
+    [HttpGet("{id:guid}/courses")]
+    [ProducesResponseType(typeof(IReadOnlyList<CourseDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> Courses(Guid id, CancellationToken ct)
+    {
+        var courses = await _enrollments.StudentCoursesAsync(id, ct);
+        return Ok(courses);
     }
 }
 

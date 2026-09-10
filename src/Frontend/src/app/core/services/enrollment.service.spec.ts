@@ -26,4 +26,14 @@ describe('EnrollmentService', () => {
     expect(req.request.method).toBe('GET');
     req.flush({ items: [{ studentId: 'x', fullName: 'X' }], total: 2 });
   });
+
+  it('loads only the requester courses', () => {
+    service.myCourses('student-9').subscribe(res => {
+      expect(res.length).toBe(3);
+    });
+
+    const req = http.expectOne('http://localhost:5000/api/students/student-9/courses');
+    expect(req.request.method).toBe('GET');
+    req.flush([{ id: 'a' }, { id: 'b' }, { id: 'c' }]);
+  });
 });

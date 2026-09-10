@@ -77,10 +77,9 @@ public sealed class PagingServiceTests
         result.Items[0].Code.Should().Be("MAT-101");
     }
 
-    [Fact]
+        [Fact]
     public async Task Programs_and_professors_paged_forward_total()
-    {
-        var programs = new Mock<IProgramRepository>();
+    {        var programs = new Mock<IProgramRepository>();
         var professors = new Mock<IProfessorRepository>();
         var courses = new Mock<ICourseRepository>();
 

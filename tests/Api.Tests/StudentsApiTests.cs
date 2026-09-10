@@ -80,9 +80,22 @@ public sealed class StudentsApiTests
     }
 
     [Fact]
-    public async Task Delete_Then_Recreate_Offers_Restore()
+    public async Task StudentCourses_ReturnsOnlyTheirCourses()
     {
-        var programId = await ProgramIdAsync();
+        var list = await _client.GetFromJsonAsync<Paged<StudentDto>>("/api/students?page=1&pageSize=100", Json);
+        var laura = list!.Items.Single(s => s.Email == "laura.mendez@uni.edu");
+
+        var courses = await _client.GetFromJsonAsync<List<CourseDto>>($"/api/students/{laura.Id}/courses", Json);
+        courses!.Should().HaveCount(3);
+        courses.Select(c => c.Code).Should().BeEquivalentTo("MAT-101", "SIS-103", "SIS-105");
+
+        var missing = await _client.GetAsync($"/api/students/{Guid.NewGuid()}/courses");
+        missing.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task Delete_Then_Recreate_Offers_Restore()
+    {        var programId = await ProgramIdAsync();
         var payload = new
         {
             fullName = "Restore Me",

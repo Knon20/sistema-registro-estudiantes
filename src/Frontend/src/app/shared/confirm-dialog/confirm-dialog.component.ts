@@ -16,7 +16,7 @@ import { ConfirmDialogService } from './confirm-dialog.service';
         <h3>{{ opts.title }}</h3>
         <p class="muted">{{ opts.message }}</p>
         <div class="actions" [class.three]="opts.altText">
-          <button class="btn" (click)="dialog.resolve('cancel')">{{ opts.cancelText }}</button>
+          <button *ngIf="!opts.hideCancel" class="btn" (click)="dialog.resolve('cancel')">{{ opts.cancelText }}</button>
           <button *ngIf="opts.altText" class="btn" (click)="dialog.resolve('alt')">{{ opts.altText }}</button>
           <button class="btn" [class.danger-glow]="opts.tone !== 'brand'" [class.primary-glow]="opts.tone === 'brand'" (click)="dialog.resolve('confirm')">{{ opts.confirmText }}</button>
         </div>

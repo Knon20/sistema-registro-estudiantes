@@ -223,6 +223,59 @@ public sealed class EnrollmentServiceTests
     }
 
     [Fact]
+    public async Task StudentCourses_returns_distinct_courses_across_enrollments()
+    {
+        var (students, courses, professors, enrollments, uow) = Mocks();
+        var studentId = Guid.NewGuid();
+        var student = new Student("Ana Gil", "ana@uni.edu", "1001", Guid.NewGuid());
+        var list = Courses();
+        var e1 = Enrollment.Create(studentId, "2026-1", list);
+        var e2 = Enrollment.Create(studentId, "2026-2", list);
+
+        students.Setup(s => s.GetByIdAsync(studentId, It.IsAny<CancellationToken>())).ReturnsAsync(student);
+        enrollments.Setup(e => e.ListByStudentAsync(studentId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<Enrollment> { e1, e2 });
+        courses.Setup(c => c.GetByIdsAsync(It.IsAny<IEnumerable<Guid>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(list);
+        professors.Setup(p => p.ListAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<Professor>());
+
+        var svc = new EnrollmentService(students.Object, courses.Object, professors.Object, enrollments.Object, uow.Object);
+        var result = await svc.StudentCoursesAsync(studentId);
+
+        result.Should().HaveCount(3);
+        result.Select(c => c.Code).Should().BeInAscendingOrder();
+    }
+
+    [Fact]
+    public async Task StudentCourses_unknown_student_throws_not_found()
+    {
+        var (students, courses, professors, enrollments, uow) = Mocks();
+        students.Setup(s => s.GetByIdAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Student?)null);
+
+        var svc = new EnrollmentService(students.Object, courses.Object, professors.Object, enrollments.Object, uow.Object);
+        var act = () => svc.StudentCoursesAsync(Guid.NewGuid());
+
+        await act.Should().ThrowAsync<EntityNotFoundException>()
+            .Where(e => e.Code == ErrorCodes.StudentNotFound);
+    }
+
+    [Fact]
+    public async Task StudentCourses_without_enrollments_returns_empty()
+    {
+        var (students, courses, professors, enrollments, uow) = Mocks();
+        var studentId = Guid.NewGuid();
+        students.Setup(s => s.GetByIdAsync(studentId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Student("Ana Gil", "ana@uni.edu", "1001", Guid.NewGuid()));
+        enrollments.Setup(e => e.ListByStudentAsync(studentId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<Enrollment>());
+
+        var svc = new EnrollmentService(students.Object, courses.Object, professors.Object, enrollments.Object, uow.Object);
+        (await svc.StudentCoursesAsync(studentId)).Should().BeEmpty();
+    }
+
+    [Fact]
     public async Task Classmates_unknown_course_throws_not_found()
     {
         var (students, courses, professors, enrollments, uow) = Mocks();

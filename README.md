@@ -70,7 +70,7 @@ docker compose up --build
 dotnet test
 ```
 
-64 pruebas verdes: 44 unitarias backend (13 dominio + 31 aplicación, xUnit + Moq + FluentAssertions), 10 de integración API (WebApplicationFactory + MySQL real vía Testcontainers) y 10 de frontend (Karma/Jasmine).
+69 pruebas verdes: 47 unitarias backend (13 dominio + 34 aplicación, xUnit + Moq + FluentAssertions), 11 de integración API (WebApplicationFactory + MySQL real vía Testcontainers) y 11 de frontend (Karma/Jasmine).
 
 ## Endpoints principales
 
@@ -81,6 +81,7 @@ GET    /api/students/{id}
 PUT    /api/students/{id}
 DELETE /api/students/{id}                        (soft delete)
 POST   /api/students/{id}/restore                (reactiva eliminado)
+GET    /api/students/{id}/courses                (solo sus materias)
 
 GET    /api/programs|professors|courses?page=&pageSize=   -> {items, total}
 

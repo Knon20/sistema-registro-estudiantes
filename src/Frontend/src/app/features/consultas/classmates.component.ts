@@ -1,9 +1,9 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { CatalogService } from '../../core/services/catalog.service';
 import { EnrollmentService } from '../../core/services/enrollment.service';
 import { StudentService } from '../../core/services/student.service';
+import { ConfirmDialogService } from '../../shared/confirm-dialog/confirm-dialog.service';
 import { CourseDto, ClassmateDto, StudentDto } from '../../core/models';
 import { apiMessage } from '../../core/http/api-error';
 
@@ -14,17 +14,17 @@ import { apiMessage } from '../../core/http/api-error';
   template: `
     <section class="card mates-card">
       <h2>Compañeros por materia · {{ total() }}</h2>
-      <p class="muted">Solo se muestran los <strong>nombres</strong> de los compañeros (sin datos sensibles). Debes estar inscrito en la materia para verlos.</p>
+      <p class="muted">Solo se muestran los <strong>nombres</strong> de los compañeros (sin datos sensibles).</p>
       <p *ngIf="error()" class="error">{{ error() }}</p>
       <label>Consultar como (estudiante)
-        <select [(ngModel)]="requesterId" (ngModelChange)="resetAndLoad()">
+        <select [(ngModel)]="requesterId" (ngModelChange)="onRequesterChange()">
           <option value="">Seleccione quién eres...</option>
           <option *ngFor="let s of students()" [value]="s.id">{{ s.fullName }}</option>
         </select>
       </label>
-      <label>Materia
-        <select [(ngModel)]="selectedCourse" (ngModelChange)="resetAndLoad()">
-          <option value="">Seleccione...</option>
+      <label>Mis materias
+        <select [(ngModel)]="selectedCourse" (ngModelChange)="resetAndLoad()" [disabled]="!courses().length">
+          <option value="">{{ courses().length ? 'Seleccione...' : 'Primero elige quién eres' }}</option>
           <option *ngFor="let c of courses()" [value]="c.id">{{ c.code }} — {{ c.name }} ({{ c.professorName }})</option>
         </select>
       </label>
@@ -43,6 +43,7 @@ import { apiMessage } from '../../core/http/api-error';
   styles: [`
     .mates-card { max-width: 680px; margin-inline: auto; }
     label { display: grid; gap: .4rem; margin: .8rem 0; }
+    select:disabled { opacity: .6; }
     .mates { margin-top: .8rem; display: grid; gap: .5rem; padding: 0; list-style: none; }
     .mates li {
       display: flex; align-items: center; gap: .7rem;
@@ -57,9 +58,9 @@ import { apiMessage } from '../../core/http/api-error';
   `]
 })
 export class ClassmatesComponent implements OnInit {
-  private catalog = inject(CatalogService);
   private enrollments = inject(EnrollmentService);
   private studentsApi = inject(StudentService);
+  private dialog = inject(ConfirmDialogService);
 
   courses = signal<CourseDto[]>([]);
   students = signal<StudentDto[]>([]);
@@ -77,8 +78,33 @@ export class ClassmatesComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.catalog.courses().subscribe({ next: (res) => this.courses.set(res.items) });
     this.studentsApi.list(1, 100).subscribe({ next: (res) => this.students.set(res.items) });
+  }
+
+  onRequesterChange(): void {
+    this.selectedCourse = '';
+    this.classmates.set([]);
+    this.total.set(0);
+    this.page.set(1);
+    this.error.set(null);
+    if (!this.requesterId) { this.courses.set([]); return; }
+    this.loading.set(true);
+    this.enrollments.myCourses(this.requesterId).subscribe({
+      next: (items) => {
+        this.courses.set(items);
+        this.loading.set(false);
+        if (items.length === 0) {
+          this.dialog.open({
+            title: 'Sin materias inscritas',
+            message: 'Este estudiante aún no tiene materias inscritas. Inscríbelo primero para ver a sus compañeros.',
+            confirmText: 'Entendido',
+            hideCancel: true,
+            tone: 'brand',
+          });
+        }
+      },
+      error: (e) => { this.error.set(apiMessage(e, 'No se pudieron cargar tus materias.')); this.loading.set(false); }
+    });
   }
 
   resetAndLoad(): void {
@@ -98,9 +124,6 @@ export class ClassmatesComponent implements OnInit {
     if (!this.selectedCourse || !this.requesterId) {
       this.classmates.set([]);
       this.total.set(0);
-      if (this.selectedCourse && !this.requesterId) {
-        this.error.set('Selecciona qué estudiante eres para consultar.');
-      }
       return;
     }
     this.loading.set(true);
